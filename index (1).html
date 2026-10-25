@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1F8A6F">
+<title>Demo — Agenda para clínicas dentales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@1,500;1,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F4F7; --surface:#FFFFFF; --ink:#1C2230; --ink-soft:#666E85; --line:#E2E4EE;
+    --paciente:#6C63FF; --paciente-soft:#ECEBFF;
+    --clinica:#1F8A6F; --clinica-soft:#E4F1EC;
+    --warm:#B9791A; --warm-soft:#F5E7CD; --ok:#2E9E6B; --ok-soft:#E2F5EB; --danger:#B4432E; --danger-soft:#F6E7E3;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#12141C; --surface:#1A1D29; --ink:#EEEFF6; --ink-soft:#9BA0B8; --line:#2A2D3D;
+      --paciente:#9791FF; --paciente-soft:#26264A; --clinica:#43C39B; --clinica-soft:#173327;
+      --warm:#E0A458; --warm-soft:#332818; --ok:#4FC08D; --ok-soft:#173327; --danger:#E17E6A; --danger-soft:#2E1C18;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0;}
+  body{background:var(--bg); color:var(--ink); font-family:'Manrope',system-ui,sans-serif; display:flex; flex-direction:column;}
+  body{ --brand:#1F8A6F; --accent:var(--brand); --accent-soft:color-mix(in srgb, var(--brand) 14%, var(--surface)); }
+  .brand{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .logo{
+    width:38px; height:38px; border-radius:11px; background:var(--accent); color:#fff; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; letter-spacing:.02em;
+  }
+  .brand-name{font-family:'Newsreader',serif; font-style:italic; font-weight:600; font-size:18px; line-height:1.15; flex:1; min-width:0;}
+  .demo-switch{font-size:10.5px; color:var(--ink-soft); text-align:right;}
+  .demo-switch select{width:auto; margin:2px 0 0; padding:4px 6px; font-size:11.5px; border-radius:7px;}
+
+  header{
+    padding:calc(14px + env(safe-area-inset-top,0px)) 16px 12px;
+    border-bottom:1px solid var(--line); background:var(--surface);
+  }
+  .toggle{display:flex; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px;}
+  .toggle button{
+    flex:1; background:none; border:none; padding:8px 6px; border-radius:7px; font-family:inherit;
+    font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer;
+  }
+  .toggle button.on{background:var(--accent); color:#fff;}
+  .status-line{display:flex; align-items:center; gap:6px; margin-top:9px; font-size:11.5px; color:var(--ink-soft);}
+  .dot-live{width:6px; height:6px; border-radius:50%; background:var(--ok); flex-shrink:0;}
+  .dot-live.off{background:var(--warm);}
+
+  main{flex:1; overflow-y:auto; padding:16px 16px 30px; max-width:640px; margin:0 auto; width:100%;}
+  .view{display:none;}
+  .view.on{display:block;}
+  h1{font-family:'Newsreader',serif; font-style:italic; font-weight:600; font-size:20px; margin:0 0 3px;}
+  .sub{font-size:12.5px; color:var(--ink-soft); margin:0 0 16px;}
+
+  label{font-size:12px; color:var(--ink-soft); display:block; margin-bottom:4px;}
+  input, select{
+    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    background:var(--surface); color:var(--ink); font-family:inherit; font-size:13.5px; margin-bottom:11px;
+  }
+  .fields{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .hint{font-size:11.5px; color:var(--ink-soft); margin:-5px 0 12px;}
+  .hint.warn{display:none; color:var(--danger); font-weight:600;}
+  .match{margin-top:7px; padding-top:7px; border-top:1px dashed var(--line); font-size:11.5px; color:var(--ink-soft); line-height:1.5;}
+  .match a{color:var(--accent); font-weight:700; text-decoration:none;}
+  button.submit{
+    width:100%; background:var(--accent); color:#fff; font-weight:700; font-size:13.5px;
+    padding:11px; border:none; border-radius:10px; cursor:pointer; margin-bottom:10px;
+  }
+  button.submit:disabled{opacity:.5; cursor:not-allowed;}
+
+  h2{font-size:13px; font-weight:700; margin:0 0 10px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.02em;}
+  ul.list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+  ul.list li{
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+  }
+  .li-name{font-weight:700; font-size:13.5px;}
+  .li-sub{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .tag{font-size:11px; padding:4px 10px; border-radius:20px; font-weight:700; white-space:nowrap; cursor:default;}
+  .tag.pendiente{background:var(--warm-soft); color:var(--warm);}
+  .tag.confirmada{background:var(--ok-soft); color:var(--ok);}
+  .tag.realizada{background:var(--line); color:var(--ink-soft);}
+  .tag.cancelada{background:var(--danger-soft); color:var(--danger);}
+  [data-role="recepcion"] .tag{cursor:pointer;}
+  #list-todas li{border-left:5px solid var(--line); align-items:center;}
+  #list-todas li.st-pendiente{border-left-color:var(--warm);}
+  #list-todas li.st-confirmada{border-left-color:var(--ok);}
+  #list-todas li.st-cancelada{border-left-color:var(--danger);}
+  #list-todas li.st-realizada{border-left-color:var(--line); opacity:.7;}
+  #list-todas .li-name{font-size:16.5px;}
+  .group-h{font-size:11.5px; font-weight:800; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin:20px 2px 9px;}
+  .group-h:first-child{margin-top:0;}
+  .empty{color:var(--ink-soft); font-size:13px; padding:24px 4px; text-align:center;}
+  .match.ok{color:var(--ok); font-weight:600;}
+  .match b{color:var(--ink);}
+  .cand{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px;}
+  .btnrow{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .mini{font-family:inherit; font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:8px;
+    border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;}
+  .mini.pri{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .mini.bad{color:var(--danger);}
+  .remind{background:var(--accent-soft); border:1px solid var(--accent); border-radius:14px; padding:14px; margin-bottom:16px;}
+  .remind b{font-size:13.5px; display:block; margin-bottom:3px;}
+  .remind p{margin:0; font-size:12.5px; color:var(--ink-soft);}
+  .chk{display:flex; gap:8px; align-items:flex-start; font-size:12.5px; color:var(--ink); margin:2px 0 14px;}
+  .chk input{width:auto; margin:2px 0 0;}
+  details.guide{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:16px; font-size:12.5px;}
+  details.guide summary{font-weight:700; cursor:pointer; color:var(--accent);}
+  details.guide ul{margin:10px 0 0; padding-left:18px; line-height:1.55; color:var(--ink-soft);}
+  details.guide li{margin-bottom:5px;}
+  details.guide b{color:var(--ink);}
+  .slots{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+  .slots .hint{margin:0;}
+  .chip{font-family:inherit; font-size:14px; font-weight:700; padding:13px 16px; border-radius:12px;
+    border:1.5px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;}
+  .chip.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  form.entry{background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:15px;
+    margin-bottom:14px; display:none; flex-direction:column;}
+  form.entry.open{display:flex;}
+  form.entry textarea{width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    background:var(--bg); color:var(--ink); font-family:inherit; font-size:13.5px; margin-bottom:11px; resize:vertical;}
+  form.entry input[type=file]{font-size:12.5px; margin-bottom:10px;}
+  form.entry .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:2px;}
+  .btn-ghost{background:transparent; border:none; color:var(--ink-soft); font-family:inherit; font-size:12.5px;
+    padding:9px 12px; text-decoration:underline; cursor:pointer;}
+  .btn-primary{background:var(--accent); color:#fff; border:none; border-radius:10px; font-family:inherit;
+    font-size:13.5px; font-weight:700; padding:10px 16px; cursor:pointer;}
+  .urg-btn{display:inline-block; width:auto; background:#D32F2F; color:#fff; border:none; border-radius:22px; padding:8px 16px;
+    font-family:inherit; font-size:12.5px; font-weight:800; cursor:pointer; margin-bottom:12px; letter-spacing:.02em;
+    box-shadow:0 2px 0 #9A1B1B;}
+  .urg-btn:active{transform:translateY(1px); box-shadow:0 1px 0 #9A1B1B;}
+  .urg-form{border:2px solid #D32F2F !important;}
+  .urg-form label{color:#D32F2F; font-weight:700;}
+  .photos{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:11px;}
+  .photos img{width:66px; height:66px; object-fit:cover; border-radius:9px; border:1px solid var(--line);}
+  .urg-card{border-left:5px solid #D32F2F !important; background:var(--danger-soft) !important;}
+  .urg-photos{display:flex; gap:7px; flex-wrap:wrap; margin-top:8px;}
+  .urg-photos img{width:88px; height:88px; object-fit:cover; border-radius:9px; border:1px solid var(--line); cursor:pointer;}
+  .boxsec{background:var(--surface); border:1.5px solid var(--line); border-radius:15px; padding:13px; margin-bottom:14px;}
+  .boxsec > h3{margin:0 0 10px; font-size:13px; font-weight:800; letter-spacing:.02em; text-transform:uppercase;
+    display:flex; align-items:center; gap:7px;}
+  .boxsec.pend > h3{color:var(--warm);} .boxsec.conf > h3{color:var(--ok);} .boxsec.canc > h3{color:var(--danger);}
+  .boxsec .count{background:var(--bg); border-radius:20px; padding:2px 9px; font-size:11.5px;}
+  .boxsec ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+  .boxsec li{background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:12px 13px; display:flex; gap:10px;}
+  .boxsec .li-name{font-size:15.5px; font-weight:700;}
+  .ord{background:var(--accent); color:#fff; border-radius:8px; min-width:26px; height:26px; display:flex;
+    align-items:center; justify-content:center; font-size:12.5px; font-weight:800; flex-shrink:0;}
+  .flag{display:inline-block; background:var(--danger-soft); color:var(--danger); font-size:11px; font-weight:700;
+    padding:2px 8px; border-radius:20px; margin-left:6px;}
+  .hoursel{width:100%; padding:15px 13px; border:1.5px solid var(--line); border-radius:13px;
+    background:var(--surface); color:var(--ink); font-family:inherit; font-size:16px; font-weight:700; cursor:pointer;}
+  .hoursel:focus{border-color:var(--accent); outline:none;}
+  .push{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:13px 14px;
+    margin-bottom:12px; box-shadow:0 6px 18px rgba(0,0,0,.12);}
+  .push-top{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-soft); margin-bottom:7px;}
+  .push-ico{width:22px; height:22px; border-radius:6px; background:var(--accent); color:#fff; font-size:10.5px;
+    font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .push b{display:block; font-size:14.5px; margin-bottom:2px;}
+  .push p{margin:0 0 10px; font-size:13px; color:var(--ink-soft); line-height:1.4;}
+  .push-btns{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .push-btns button{font-family:inherit; font-size:14px; font-weight:800; padding:13px 8px; border:none;
+    border-radius:11px; cursor:pointer;}
+  .push-btns .yes{background:var(--ok); color:#fff;} .push-btns .no{background:var(--danger-soft); color:var(--danger);}
+  #cal{scroll-margin-top:12px;}
+  .rtabs{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:4px 0 14px;}
+  .rtab{font-family:inherit; font-size:13px; font-weight:700; padding:13px 11px; border-radius:12px; border:1.5px solid var(--line);
+    background:var(--surface); color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px; text-align:left;}
+  .rtab.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .rtab .n{background:var(--bg); color:var(--ink); border-radius:20px; padding:2px 9px; font-size:12px; font-weight:800;}
+  .rtab.alert .n{background:#D32F2F; color:#fff;}
+  .prow{cursor:pointer; align-items:center;}
+  .prow .chev{color:var(--ink-soft); font-size:22px;}
+  .tools{display:flex; gap:8px; margin-bottom:12px;}
+  .tools .mini{flex:1; padding:12px 6px; font-size:12.5px;}
+  .pdf-link{display:inline-block; text-decoration:none;}
+  .tag.elegida{background:var(--warm-soft); color:var(--warm);}
+  .tag.reservada{background:var(--accent-soft); color:var(--accent);}
+  .demo-banner{margin:10px 16px 0; padding:10px 12px; background:var(--accent-soft); border-radius:12px; font-size:12px; line-height:1.45; color:var(--ink);}
+  .demo-banner details.guide{margin:8px 0 0; background:var(--surface);}
+  .locked{background:var(--accent-soft); border:1.5px solid var(--accent); border-radius:13px; padding:13px 15px; margin-bottom:14px;}
+  .locked b{font-size:14.5px; display:block;}
+  .locked small{display:block; color:var(--ink-soft); font-size:11.5px; margin-top:3px;}
+  .cal{background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:12px; margin-bottom:14px;}
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .cal-head .m{font-weight:800; font-size:14.5px; text-transform:capitalize;}
+  .cal-nav{background:var(--bg); border:1px solid var(--line); color:var(--ink); width:34px; height:34px;
+    border-radius:9px; font-size:17px; cursor:pointer; line-height:1;}
+  .cal-nav:disabled{opacity:.3; cursor:not-allowed;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .cal-dow{font-size:10.5px; font-weight:800; color:var(--ink-soft); text-align:center; padding-bottom:4px; text-transform:uppercase;}
+  .cal-d{aspect-ratio:1; border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700;
+    background:transparent; color:var(--ink-soft); opacity:.45; cursor:default; display:flex; align-items:center; justify-content:center;}
+  .cal-d.free{background:#2563EB; color:#fff; opacity:1; cursor:pointer;}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .cal-d.free{background:#4C84F5;} }
+  .cal-d.on{background:var(--accent); color:#fff; opacity:1; box-shadow:0 0 0 3px var(--accent-soft);}
+  .cal-legend{display:flex; gap:14px; margin-top:10px; font-size:11px; color:var(--ink-soft); align-items:center;}
+  .cal-legend i{width:11px; height:11px; border-radius:3px; display:inline-block; margin-right:4px; vertical-align:-1px;}
+  .opts{display:flex; flex-wrap:wrap; gap:9px; margin-bottom:14px;}
+  .opt{font-family:inherit; flex:1 1 130px; padding:15px 10px; border-radius:13px; border:1.5px solid var(--line);
+    background:var(--surface); color:var(--ink); font-size:14px; font-weight:700; text-align:center; cursor:pointer; line-height:1.3;}
+  .opt small{display:block; font-weight:500; color:var(--ink-soft); font-size:11.5px; margin-top:3px;}
+  .opt.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .opt.on small{color:rgba(255,255,255,.85);}
+  .mini.full{width:100%; padding:10px; margin-bottom:22px;}
+  .banner{
+    background:var(--warm-soft); color:var(--warm); font-size:12px; padding:10px 12px;
+    border-radius:10px; margin-bottom:14px;
+  }
+</style>
+</head>
+<body data-role="paciente">
+
+<header>
+  <div class="brand">
+    <div class="logo" id="brandLogo">SM</div>
+    <div class="brand-name" id="brandName">Sonrisa Málaga</div>
+    <div class="demo-switch">Demo: clínica<br>
+      <select id="clinicSel" onchange="applyClinic(this.value)">
+        <option value="sonrisa">Sonrisa Málaga</option>
+        <option value="centro">Dental Centro Sur</option>
+        <option value="bella">Bella Sonrisa</option>
+      </select>
+    </div>
+  </div>
+  <div class="toggle">
+    <button class="on" data-r="paciente" onclick="setRole('paciente')">🧑 Vista paciente</button>
+    <button data-r="recepcion" onclick="setRole('recepcion')">🏥 Vista recepción</button>
+  </div>
+  <div class="status-line"><span class="dot-live off" id="liveDot"></span><span id="liveLabel">Conectando…</span></div>
+</header>
+<div class="demo-banner">📌 <b>Demo con datos de ejemplo.</b> Nada de lo que hagas se guarda ni sale de tu dispositivo; al recargar, vuelve a empezar.
+  <details class="guide"><summary>¿Cómo probarla en 1 minuto?</summary>
+    <ul>
+      <li><b>Paciente:</b> en «Vista paciente» toca un tratamiento, elige día y hora, pulsa «Elegir esta cita» y luego «Confirmar».</li>
+      <li><b>Recepción:</b> cambia a «Vista recepción». La cita aparece en «Por confirmar» y el hueco ya está ocupado.</li>
+      <li><b>Huecos:</b> cancela una cita confirmada y mira «Canceladas». En «Presupuestos», pulsa «Simular 15 min sin respuesta» para ver cómo el hueco pasa al siguiente paciente.</li>
+      <li>Arriba a la derecha puedes cambiar de clínica y ver cómo se adapta a su logo, nombre y horarios.</li>
+      <li>Aquí paciente y recepción están en el mismo aparato; en la realidad serían dos pantallas distintas.</li>
+    </ul>
+  </details></div>
+
+<main>
+  <section class="view on" id="view-paciente">
+    <div id="remindBox"></div>
+    <button type="button" class="urg-btn" onclick="toggleForm('form-urg')">🚨 URGENCIA</button>
+    <form class="entry urg-form" id="form-urg">
+      <label>Tu teléfono (te llamamos nosotros)</label>
+      <input id="u-phone" type="tel" placeholder="600 000 000">
+      <label>Tu nombre</label>
+      <input id="u-name" placeholder="Nombre y apellidos">
+      <label>¿Qué te ha pasado?</label>
+      <textarea id="u-text" rows="3" placeholder="Explica qué te duele o qué ha ocurrido..."></textarea>
+      <label>Fotos (opcional, ayuda mucho)</label>
+      <input id="u-files" type="file" accept="image/*" multiple onchange="pickPhotos(event)">
+      <div class="photos" id="u-preview"></div>
+      <p class="hint" id="u-status"></p>
+      <div class="actions">
+        <button type="button" class="btn-ghost" onclick="toggleForm('form-urg')">Cancelar</button>
+        <button type="button" class="btn-primary" id="u-submit" style="background:#D32F2F" onclick="sendUrgencia()">Enviar urgencia</button>
+      </div>
+    </form>
+    <button type="button" class="mini" style="width:100%; padding:13px; margin-bottom:12px;" onclick="toggleBudgetMine()">📋 Mi presupuesto</button>
+    <div id="budgetMine"></div>
+    <h1>Solicitar cita</h1>
+    <p class="sub" id="clinicLine">Esto llega a la clínica al instante — pruébalo y cambia a "Vista recepción" arriba.</p>
+    <label>Tu nombre</label>
+    <input id="p-name" placeholder="Nombre y apellidos" value="Laura García" onchange="onNameChange()">
+    <label>Teléfono</label>
+    <input id="p-phone" type="tel" placeholder="600 000 000" value="611 22 33 44">
+    <div id="chgNote"></div>
+    <label>Tratamiento</label>
+    <input type="hidden" id="p-reason">
+    <div class="opts" id="treatOpts"></div>
+    <p class="hint">Para otros tratamientos, la clínica te lo concierta: escríbele en Mensajes.</p>
+    <label>Profesional</label>
+    <input type="hidden" id="p-doctor">
+    <div class="opts" id="proOpts"></div>
+    <p class="hint" id="hoursHint"></p>
+    <label>Elige el día</label>
+    <input type="hidden" id="p-date">
+    <div class="cal" id="cal"></div>
+    <label>Horas disponibles</label>
+    <div class="slots" id="slots"></div>
+    <div id="oneOnly"></div>
+    <button class="submit" id="p-submit" onclick="submitSolicitud()" disabled>Elegir esta cita</button>
+    <button type="button" class="mini full" onclick="joinWaitlistOnly()">Ninguna hora me viene bien: apuntarme en lista de espera</button>
+    <h2>Mis citas</h2>
+    <ul class="list" id="list-mias"></ul>
+    <div class="locked" style="border-style:dashed; margin-top:22px;">
+      <b>🧪 Solo para probar la demo</b>
+      <small>En la vida real este mensaje le llega al paciente cuando termina su cita. Aquí no se puede reservar en el pasado, así que pulsa el botón para ver cómo le llegaría.</small>
+      <button type="button" class="mini pri" style="margin-top:10px;" onclick="simularFinCita()">Simular que acabo de salir de mi cita</button>
+    </div>
+  </section>
+
+  <section class="view" id="view-recepcion">
+    <h1>Solicitudes de pacientes</h1>
+    <ul class="list" id="list-urgencias"></ul>
+    <div class="tools">
+      <button type="button" class="mini pri" onclick="toggleForm('form-manual')">📞 Añadir cita</button>
+      <button type="button" class="mini" onclick="toggleForm('form-presu')">📋 Subir presupuesto</button>
+    </div>
+    <form class="entry" id="form-manual">
+      <label>Paciente</label>
+      <input id="m-name" placeholder="Nombre y apellidos">
+      <label>Teléfono</label>
+      <input id="m-phone" type="tel" placeholder="600 000 000">
+      <label>Tratamiento</label>
+      <div class="opts" id="mTreatOpts"></div>
+      <label>Profesional</label>
+      <div class="opts" id="mProOpts"></div>
+      <label>Fecha</label>
+      <input id="m-date" type="date" onchange="renderManualSlots()">
+      <label>Horas disponibles</label>
+      <div class="slots" id="mSlots"></div>
+      <div class="actions">
+        <button type="button" class="btn-ghost" onclick="toggleForm('form-manual')">Cancelar</button>
+        <button type="button" class="btn-primary" id="m-submit" onclick="submitManual()" disabled>Guardar cita</button>
+      </div>
+    </form>
+    <form class="entry" id="form-presu">
+      <label>Paciente (con el mismo nombre que en su app)</label>
+      <input id="b-name" placeholder="Nombre y apellidos">
+      <label>PDF del presupuesto</label>
+      <input id="b-pdf" type="file" accept="application/pdf">
+      <label>Tratamientos del presupuesto — toca los que incluye</label>
+      <div class="opts" id="bTreatOpts"></div>
+      <p class="hint" id="b-status"></p>
+      <div class="actions">
+        <button type="button" class="btn-ghost" onclick="toggleForm('form-presu')">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="saveBudget()">Guardar presupuesto</button>
+      </div>
+    </form>
+    <div id="assignBox"></div>
+    <p class="hint" id="appStats" style="margin:0 0 10px;"></p>
+    <div class="rtabs" id="rtabs"></div>
+    <div id="list-todas"></div>
+    <div id="recoverWrap" style="display:none">
+      <h2 id="recoverCount">Pacientes para recuperar</h2>
+      <ul class="list" id="list-recuperar"></ul>
+    </div>
+    <div id="budgetList" style="display:none"></div>
+    <details class="guide"><summary>¿Qué puede hacer la clínica con esto?</summary>
+      <ul>
+        <li><b>Citas desde la app:</b> el paciente elige y confirma, el hueco queda ocupado al instante y recepción solo tiene que comprobarla y pulsar Confirmar.</li>
+        <li><b>Cubrir huecos:</b> si un paciente cancela, aparecen los pacientes en lista de espera con el mismo tratamiento y doctor, y se asigna el hueco con un botón.</li>
+        <li><b>Evitar ausencias:</b> envía un recordatorio de un clic; el paciente confirma su asistencia o avisa de que no puede ir.</li>
+        <li><b>Horas que cuadran:</b> cada tratamiento tiene su duración, sus días y sus profesionales, así que el paciente solo ve huecos reales y libres.</li>
+        <li><b>Marca propia:</b> cada clínica ve la app con su logo, nombre y horario.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script>
+  function setRole(r){
+    document.body.dataset.role = r;
+    document.querySelectorAll('.toggle button').forEach(b=>b.classList.toggle('on', b.dataset.r===r));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    document.getElementById('view-'+r).classList.add('on');
+  }
+  function esc(s){ return (s||'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+  function fmtDate(iso){
+    if(!iso) return '';
+    const d = new Date(iso+'T00:00:00');
+    return d.toLocaleDateString('es-ES',{weekday:'short', day:'numeric', month:'short'});
+  }
+
+  // En un producto real, cada clínica tendría su ficha en la base de datos
+  // (logo, nombre, color, horario, doctores) y la plataforma se "vestiría" con ella.
+  // Cada profesional tiene sus propios días y tramos. d = día (0 domingo … 6 sábado).
+  // En el producto real esto lo configuraría cada clínica desde su panel.
+  const CLINICS = {
+    sonrisa: { id:'sonrisa', name:'Sonrisa Málaga', logo:'SM', color:'#1F8A6F',
+      pros:[
+        {name:'Dra. Martínez', shifts:[{d:2,from:'09:00',to:'14:00'},{d:2,from:'17:00',to:'19:00'},
+                                       {d:4,from:'09:00',to:'14:00'},{d:4,from:'17:00',to:'19:00'}]},
+        {name:'Dr. Ibáñez',    shifts:[{d:1,from:'17:00',to:'20:00'},{d:3,from:'17:00',to:'20:00'}]},
+        {name:'Higienista',    shifts:[{d:1,from:'09:00',to:'14:00'},{d:3,from:'09:00',to:'14:00'}]} ],
+      treatments:[
+        {name:'Revisión', min:20, pros:['Dra. Martínez','Dr. Ibáñez']},
+        {name:'Limpieza dental', min:30, pros:['Higienista']},
+        {name:'Empaste simple', min:30, pros:['Dra. Martínez','Dr. Ibáñez']},
+        {name:'Empaste compuesto', min:45, pros:['Dra. Martínez','Dr. Ibáñez']} ] },
+    centro: { id:'centro', name:'Dental Centro Sur', logo:'DC', color:'#2563EB',
+      pros:[
+        {name:'Dr. Romero', shifts:[{d:1,from:'10:00',to:'14:00'},{d:3,from:'10:00',to:'14:00'},{d:5,from:'10:00',to:'14:00'}]},
+        {name:'Dra. Vega',  shifts:[{d:2,from:'15:00',to:'19:00'},{d:4,from:'15:00',to:'19:00'}]},
+        {name:'Higienista', shifts:[{d:2,from:'10:00',to:'14:00'},{d:4,from:'10:00',to:'14:00'}]} ],
+      treatments:[
+        {name:'Revisión', min:20, pros:['Dr. Romero','Dra. Vega']},
+        {name:'Limpieza dental', min:30, pros:['Higienista']},
+        {name:'Empaste simple', min:30, pros:['Dr. Romero','Dra. Vega']},
+        {name:'Empaste compuesto', min:45, pros:['Dr. Romero','Dra. Vega']} ] },
+    bella: { id:'bella', name:'Bella Sonrisa', logo:'BS', color:'#B4306B',
+      pros:[
+        {name:'Dra. Ortega', shifts:[{d:1,from:'08:00',to:'15:00'},{d:2,from:'08:00',to:'15:00'},
+                                     {d:3,from:'08:00',to:'15:00'},{d:4,from:'08:00',to:'15:00'},{d:5,from:'08:00',to:'15:00'}]},
+        {name:'Higienista',  shifts:[{d:2,from:'09:00',to:'14:00'},{d:4,from:'09:00',to:'14:00'}]} ],
+      treatments:[
+        {name:'Revisión', min:20, pros:['Dra. Ortega']},
+        {name:'Limpieza dental', min:30, pros:['Higienista']},
+        {name:'Empaste simple', min:30, pros:['Dra. Ortega']},
+        {name:'Empaste compuesto', min:45, pros:['Dra. Ortega']} ] }
+  };
+  let CLINIC = CLINICS.sonrisa;
+  let allDocs = [], mineDocs = [], asigDocs = [], urgDocs = [], presuDocs = [], urgMsg = '', ofertaDocs = [], localOffers = {}, ready = {};
+  // Asignación paciente → odontólogo. Se fija en la primera visita y solo la clínica la cambia:
+  // el paciente no elige profesional, lo atiende siempre el suyo (continuidad asistencial).
+  const slug = n => (n||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'x';
+  const asigId = name => `${CLINIC.id}--${slug(name)}`;
+  function assignedPro(name){
+    const d = asigDocs.find(x=>x.id===asigId(name));
+    return d ? d.data().doctor : null;
+  }
+  function setAssigned(name, doctor){
+    if(db) db.collection('pacientes').doc(asigId(name)).set({clinicId:CLINIC.id, patientName:name, doctor}).catch(()=>{});
+  }
+  const inClinic = d => (d.data().clinicId || 'sonrisa') === CLINIC.id;
+  const byDate = (a,b) => ((a.data().date||'')+(a.data().time||'')).localeCompare((b.data().date||'')+(b.data().time||''));
+  const RECALL_DAYS = 180; // "lleva tiempo sin venir" — orientativo, cada clínica lo ajustaría
+  const daysSince = dt => dt ? Math.floor((new Date() - new Date(dt+'T00:00:00'))/86400000) : Infinity;
+
+  // Pacientes sin cita próxima cuya última visita realizada fue hace más de RECALL_DAYS
+  function computeRecover(docs){
+    const byPatient = {};
+    docs.forEach(d=>{
+      const v = d.data(); const p = byPatient[v.patientName] || (byPatient[v.patientName] = {upcoming:false, last:null});
+      if(v.status==='pendiente' || v.status==='confirmada') p.upcoming = true;
+      if(v.status==='realizada' && v.date && (!p.last || v.date > p.last.date)) p.last = {id:d.id, date:v.date, reason:v.reason, phone:v.phone, recallSent:!!v.recallSent};
+    });
+    return Object.entries(byPatient)
+      .filter(([name,p]) => p.last && !p.upcoming && daysSince(p.last.date) >= RECALL_DAYS)
+      .map(([name,p]) => ({name, ...p.last}))
+      .sort((a,b)=> daysSince(b.date) - daysSince(a.date));
+  }
+  function markRecallSent(id){ upd(id, {recallSent:true}); }
+  function renderRecover(docs){
+    const list = computeRecover(docs), box = document.getElementById('list-recuperar');
+    document.getElementById('recoverCount').textContent = list.length ? `Pacientes para recuperar (${list.length})` : 'Pacientes para recuperar — ninguno pendiente';
+    box.innerHTML = list.length ? list.map(p=>`
+      <li>
+        <div style="min-width:0; flex:1;">
+          <div class="li-name">${esc(p.name)}</div>
+          <div class="li-sub">Última visita: ${esc(p.reason||'')} · ${fmtDate(p.date)} · hace ${Math.round(daysSince(p.date)/30)} meses${p.phone?` · <a href="tel:${esc(p.phone)}">${esc(p.phone)}</a>`:''}</div>
+          ${p.recallSent ? '<div class="match ok">📨 Aviso enviado</div>' : `<div class="btnrow"><button class="mini pri" onclick="markRecallSent('${p.id}')">▶ Enviar aviso para volver (demo)</button></div>`}
+        </div>
+      </li>`).join('') : '<li class="empty" style="width:100%;">Nadie lleva más de 6 meses sin venir.</li>';
+  }
+
+  let db = null;
+  let unsubMine = null;
+
+  const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const fromMin = n => String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+  const pad = n => String(n).padStart(2,'0');
+  let curSlots = [], chosen = null;
+
+  const curTreat = () => CLINIC.treatments.find(t=>t.name===document.getElementById('p-reason').value) || CLINIC.treatments[0];
+  const proOf = name => CLINIC.pros.find(p=>p.name===name);
+  const shiftsOn = (name, wd) => (proOf(name)?.shifts || []).filter(sh=>sh.d===wd);
+  // Días en que un profesional pasa consulta, y los días en que se puede hacer un tratamiento
+  const proDays = name => [...new Set((proOf(name)?.shifts||[]).map(sh=>sh.d))].sort();
+  const treatDays = t => [...new Set(t.pros.flatMap(proDays))].sort();
+  // "lunes 17:00-20:00 · miércoles 17:00-20:00"
+  function proSchedule(name){
+    const by = {};
+    (proOf(name)?.shifts||[]).forEach(sh=>(by[sh.d] = by[sh.d] || []).push(`${sh.from}-${sh.to}`));
+    return Object.keys(by).map(Number).sort().map(d=>`${DAYS[d]} ${by[d].join(' y ')}`).join(' · ');
+  }
+  const dayNames = ds => ds.map(d=>DAYS[d]).join(', ');
+
+  // Intervalos ocupados de un profesional en una fecha (las citas canceladas liberan el hueco)
+  function busyFor(date, pro, ignoreOfferId, ignoreAppt){
+    const now = Date.now(), ign = new Set([].concat(ignoreAppt || []));
+    const citas = allDocs.filter(inClinic).filter(d=>!ign.has(d.id)).map(d=>d.data())
+      .filter(v=>v.status!=='cancelada' && v.status!=='elegida' && v.date===date && v.time && v.doctor===pro)
+      .map(v=>{ const dur = v.duration || (CLINIC.treatments.find(t=>t.name===v.reason)||{}).min || 30;
+        return [toMin(v.time), toMin(v.time)+dur]; });
+    const retenidos = allOffers().filter(o=>o.id!==ignoreOfferId && offerActive(o.v,now) && o.v.date===date && o.v.doctor===pro)
+      .map(o=>[toMin(o.v.time), toMin(o.v.time)+o.v.min]);
+    return [...citas, ...retenidos];
+  }
+  // Huecos libres: dentro de los tramos de CADA profesional, sin solaparse con otra cita
+  function slotsFor(date, t, sel){
+    if(!date) return [];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    if(date < today) return [];
+    const wd = new Date(date+'T00:00:00').getDay();
+    const nowMin = now.getHours()*60+now.getMinutes();
+    const pros = (sel===ANY ? t.pros : [sel]).filter(p=>shiftsOn(p,wd).length);
+    const out = [];
+    pros.forEach(p=>{
+      const busy = busyFor(date,p);
+      shiftsOn(p,wd).forEach(sh=>{
+        for(let st=toMin(sh.from); st+t.min<=toMin(sh.to); st+=15){
+          if(date===today && st<=nowMin) continue;
+          if(busy.every(([a,b])=> st+t.min<=a || st>=b)) out.push({time:fromMin(st), doctor:p});
+        }
+      });
+    });
+    return out.sort((a,b)=>a.time.localeCompare(b.time));
+  }
+  // Calendario: azul = ese profesional tiene huecos libres ese día; gris = no disponible
+  let calMonth = null; // primer día del mes mostrado
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  function dayHasSlots(dateStr){
+    const t = curTreat(), sel = document.getElementById('p-doctor').value;
+    return slotsFor(dateStr, t, sel).length > 0;
+  }
+  function calShift(n){
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+n, 1);
+    renderCal();
+  }
+  function pickDay(dateStr){
+    document.getElementById('p-date').value = dateStr;
+    renderCal(); renderSlots();
+  }
+  function renderCal(){
+    const box = document.getElementById('cal');
+    const now = new Date(), todayStr = iso(now);
+    if(!calMonth) calMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const y = calMonth.getFullYear(), m = calMonth.getMonth();
+    const first = new Date(y, m, 1), last = new Date(y, m+1, 0);
+    const lead = (first.getDay()+6)%7; // semana empieza en lunes
+    const sel = document.getElementById('p-date').value;
+    const atStart = (y===now.getFullYear() && m===now.getMonth());
+    let cells = '';
+    for(let i=0;i<lead;i++) cells += '<div></div>';
+    for(let day=1; day<=last.getDate(); day++){
+      const ds = `${y}-${pad(m+1)}-${pad(day)}`;
+      const free = ds >= todayStr && dayHasSlots(ds);
+      const cls = 'cal-d' + (free?' free':'') + (ds===sel?' on':'');
+      cells += free
+        ? `<button type="button" class="${cls}" onclick="pickDay('${ds}')">${day}</button>`
+        : `<div class="${cls}">${day}</div>`;
+    }
+    box.innerHTML = `
+      <div class="cal-head">
+        <button type="button" class="cal-nav" onclick="calShift(-1)" ${atStart?'disabled':''}>‹</button>
+        <span class="m">${first.toLocaleDateString('es-ES',{month:'long', year:'numeric'})}</span>
+        <button type="button" class="cal-nav" onclick="calShift(1)">›</button>
+      </div>
+      <div class="cal-grid">
+        ${['L','M','X','J','V','S','D'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+        ${cells}
+      </div>
+      <div class="cal-legend"><span><i style="background:#2563EB"></i>Días con hueco libre</span><span><i style="background:var(--line)"></i>No disponible</span></div>`;
+  }
+
+  function renderSlots(){
+    const date = document.getElementById('p-date').value, box = document.getElementById('slots');
+    const t = curTreat(), sel = document.getElementById('p-doctor').value;
+    chosen = null; curSlots = [];
+    if(!date){ box.innerHTML = '<p class="hint">Toca un día azul del calendario para ver sus horas.</p>'; updateSubmitState(); return; }
+    const wd = new Date(date+'T00:00:00').getDay();
+    const pros = (sel===ANY ? t.pros : [sel]);
+    if(!pros.some(p=>shiftsOn(p,wd).length)){
+      box.innerHTML = sel===ANY
+        ? `<p class="hint" style="color:var(--danger)">Ese día no hay nadie que haga ${esc(t.name)}. Se hace: ${dayNames(treatDays(t))}.</p>`
+        : `<p class="hint" style="color:var(--danger)">${esc(sel)} no pasa consulta ese día. Sus días: ${dayNames(proDays(sel))}.</p>`;
+    }
+    else{
+      curSlots = slotsFor(date, t, sel);
+      box.innerHTML = curSlots.length
+        ? `<select class="hoursel" onchange="pickSlot(this.value)">
+             <option value="">Elige una hora — ${curSlots.length} libres</option>
+             ${curSlots.map((s,i)=>`<option value="${i}">${s.time}${sel===ANY?' · '+esc(s.doctor):''}</option>`).join('')}
+           </select>`
+        : '<p class="hint">No quedan huecos ese día — prueba otra fecha o apúntate en lista de espera.</p>';
+    }
+    updateSubmitState();
+  }
+  function pickSlot(i){
+    chosen = (i==='' || i===null || i===undefined) ? null : curSlots[Number(i)];
+    updateSubmitState();
+  }
+  function checkDate(){ renderSlots(); }
+  function renderTreatOpts(){
+    const box = document.getElementById('treatOpts');
+    if(changing){
+      const t = curTreat();
+      box.innerHTML = `<div class="locked" style="flex:1 1 100%"><b>${esc(t.name)}</b><small>Estás modificando tu cita: puedes cambiar el día y la hora · ${t.min} min. Para otro tratamiento, pide una cita nueva.</small></div>`;
+      return;
+    }
+    box.innerHTML = CLINIC.treatments.map(t=>
+      `<button type="button" class="opt${t.name===document.getElementById('p-reason').value?' on':''}" onclick="selectTreat('${esc(t.name)}')">${esc(t.name)}<small>${t.min} min</small></button>`).join('');
+  }
+  function selectTreat(name){ document.getElementById('p-reason').value = name; onTreatChange(); }
+  function selectPro(name){ document.getElementById('p-doctor').value = name; document.getElementById('p-date').value=''; renderProOpts(); renderCal(); renderSlots(); }
+  // Qué profesionales puede ver este paciente para este tratamiento:
+  // el asignado si puede hacerlo; si no (p.ej. limpieza → higienista), el que corresponda.
+  function allowedPros(t){
+    if(changing && changing.doctor) return {opts:[changing.doctor], locked:true, reason:'cambio'};
+    const mine = assignedPro(document.getElementById('p-name').value.trim());
+    if(mine && t.pros.includes(mine)) return {opts:[mine], locked:true, reason:'asignado'};
+    if(t.pros.length===1) return {opts:[t.pros[0]], locked:true, reason:'unico'};
+    if(mine) return {opts:t.pros.length>1?[ANY,...t.pros]:t.pros, locked:false, reason:'otro'};
+    return {opts:t.pros.length>1?[ANY,...t.pros]:t.pros, locked:false, reason:'nuevo'};
+  }
+  function renderProOpts(){
+    const t = curTreat(), {opts, locked, reason} = allowedPros(t), box = document.getElementById('proOpts');
+    if(locked){
+      const who = opts[0];
+      const txt = reason==='cambio'
+        ? `<b>👤 ${esc(who)}</b><small>El mismo profesional de tu cita · ${esc(proSchedule(who))}</small>`
+        : reason==='asignado'
+        ? `<b>👤 ${esc(who)}</b><small>Tu odontólogo asignado — te atiende siempre el mismo · ${esc(proSchedule(who))}</small>`
+        : `<b>👤 ${esc(who)}</b><small>Es quien realiza ${esc(t.name)} en la clínica · ${esc(proSchedule(who))}</small>`;
+      box.innerHTML = `<div class="locked" style="flex:1 1 100%">${txt}</div>`;
+      return;
+    }
+    const sel = document.getElementById('p-doctor').value;
+    const nota = reason==='nuevo'
+      ? '<p class="hint" style="flex:1 1 100%; margin:0 0 4px;">Primera visita: elige con quién quieres empezar. A partir de ahí te atenderá siempre el mismo profesional.</p>' : '';
+    box.innerHTML = nota + opts.map(d=>{
+      const sched = d===ANY ? 'según disponibilidad' : proSchedule(d);
+      return `<button type="button" class="opt${d===sel?' on':''}" onclick="selectPro('${esc(d)}')">${esc(d)}<small>${esc(sched)}</small></button>`;
+    }).join('');
+  }
+  function onTreatChange(){
+    const t = curTreat();
+    const opts = allowedPros(t).opts;
+    document.getElementById('p-doctor')._opts = opts;
+    if(!opts.includes(document.getElementById('p-doctor').value)) document.getElementById('p-doctor').value = opts[0];
+    renderTreatOpts(); renderProOpts();
+    document.getElementById('hoursHint').textContent =
+      `${t.name}: dura ${t.min} min · se realiza ${dayNames(treatDays(t))}.`;
+    renderCal(); renderSlots();
+  }
+  // Citas ya vivas de este paciente (pedida o confirmada, con fecha)
+  const ESTADOS_VIVOS = ['elegida','pendiente','confirmada'];
+  function activeMine(){
+    return mineDocs.filter(inClinic).filter(d=>{ const v=d.data();
+      return ESTADOS_VIVOS.includes(v.status) && v.date && !yaPasada(v); });
+  }
+  // Se pueden tener varias citas, pero solo una por tratamiento
+  function activeFor(reason){
+    return activeMine().filter(d=>d.data().reason===reason)
+      .sort((a,b)=>(b.data().status==='elegida') - (a.data().status==='elegida'));
+  }
+  function updateSubmitState(){
+    const t = curTreat(), activas = activeFor(t.name);
+    const bloqueado = activas.length>0 && !changing;
+    const btn = document.getElementById('p-submit');
+    btn.disabled = !db || !chosen || bloqueado;
+    const box = document.getElementById('oneOnly');
+    if(bloqueado){
+      const d = activas[0], v = d.data();
+      const cuando = `${esc(v.reason)} · ${fmtDate(v.date)}${v.time?' · '+esc(v.time):''}${v.doctor?' · '+esc(v.doctor):''}`;
+      if(v.status==='elegida'){
+        box.innerHTML = `<div class="remind" style="border-color:var(--warm)"><b>Tienes una cita elegida</b>
+          <p>${cuando}. Confírmala, modifícala o cancélala en «Mis citas», más abajo.</p></div>`;
+      }else{
+        const cab = v.modificada ? '<b>✅ Cita modificada</b>' : `<b>Ya tienes una cita de ${esc(v.reason)}</b>`;
+        box.innerHTML = `<div class="remind" style="border-color:${v.modificada?'var(--ok)':'var(--warm)'}">${cab}
+          <p>${cuando}. ${v.modificada?'Puedes volver a modificarla o cancelarla.':'Para otro tratamiento, elígelo arriba; para esta, modifícala o cancélala.'}</p>
+          <div class="btnrow"><button class="mini pri" onclick="startChange('${d.id}')">🔁 Modificar</button>
+          <button class="mini bad" onclick="cancelMine('${d.id}')">Cancelar cita</button></div></div>`;
+      }
+    }else box.innerHTML = '';
+  }
+
+  function setLive(on){
+    document.getElementById('liveDot').classList.toggle('off', !on);
+    document.getElementById('liveLabel').textContent = on
+      ? 'Demo con datos de ejemplo'
+      : 'Sin conexión al almacenamiento compartido — modo solo lectura';
+    updateSubmitState();
+  }
+
+  const ANY = 'Cualquiera disponible';
+  const norm = x => (x||'').trim().toLowerCase();
+  const docCompatible = (a,b) => a===ANY || b===ANY || a===b;
+  // Pacientes en lista de espera con el mismo tratamiento y doctor compatible (los más antiguos primero)
+  const durOf = v => v.duration || (CLINIC.treatments.find(t=>t.name===v.reason)||{}).min || 30;
+  // Candidatos para un hueco libre: mismo profesional y un tratamiento que quepa
+  // en el tiempo liberado (el mismo, o uno más corto). Primero quien lleva más esperando.
+  function candidatesFor(slot, docs){
+    const sv = slot.data(), hueco = durOf(sv);
+    return docs.filter(o=>{ const ov=o.data();
+      return o.id!==slot.id && ov.status==='pendiente' && ov.waitlist
+        && durOf(ov) <= hueco && docCompatible(ov.doctorPref||ov.doctor||'', sv.doctor||''); })
+      .sort((a,b)=>{ const da=durOf(a.data()), dbb=durOf(b.data());
+        if(norm(a.data().reason)===norm(sv.reason) && norm(b.data().reason)!==norm(sv.reason)) return -1;
+        if(norm(b.data().reason)===norm(sv.reason) && norm(a.data().reason)!==norm(sv.reason)) return 1;
+        return (a.data().createdAt||'').localeCompare(b.data().createdAt||''); });
+  }
+  // Veces que un paciente ha cancelado una cita ya cogida
+  function cancelCount(name){
+    return allDocs.filter(inClinic).filter(d=>{ const v=d.data();
+      return v.patientName===name && v.status==='cancelada' && v.date && !v.cambiada; }).length;
+  }
+
+  function upd(id, patch){ if(db) db.collection('solicitudes').doc(id).update(patch).catch(()=>{}); }
+  function cancelMine(id){
+    const d = mineDocs.find(x=>x.id===id) || allDocs.find(x=>x.id===id);
+    if(d && d.data().status==='elegida'){ delete conflictos[id]; if(db) db.collection('solicitudes').doc(id).delete().catch(()=>{}); return; }
+    upd(id, {status:'cancelada', canceladaPor:'paciente'});
+  }
+  // El paciente confirma la cita que ha elegido: desde ese momento el hueco queda ocupado
+  let conflictos = {};
+  function confirmarCita(id){
+    const d = mineDocs.find(x=>x.id===id) || allDocs.find(x=>x.id===id); if(!d || !db) return;
+    const v = d.data(); if(v.status!=='elegida') return;
+    if(!slotFreeFor(v.date, v.time, durOf(v), v.doctor, undefined, [id, v.reemplaza||''])){ conflictos[id] = true; renderMine(); return; }
+    delete conflictos[id];
+    upd(id, {status:'confirmada', origen:'app', verificada:false, confirmadaEn:new Date().toISOString()});
+    if(v.reemplaza) upd(v.reemplaza, {status:'cancelada', canceladaPor:'paciente', cambiada:true});
+    const isDentist = CLINIC.treatments.some(tt=>tt.name==='Revisión' && tt.pros.includes(v.doctor));
+    if(isDentist && !assignedPro(v.patientName)) setAssigned(v.patientName, v.doctor);
+  }
+  function sendReminder(id){ upd(id, {recordatorio:true}); }        // programar
+  function sendReminderNow(id){ upd(id, {recordatorio:true, recordatorioEnviado:true}); }
+  const daysUntil = d => d ? Math.ceil((new Date(d+'T00:00:00') - new Date(new Date().toDateString()))/86400000) : 99;
+  // El aviso programado sale solo el día antes
+  function autoSendReminders(){
+    if(!db) return;
+    allDocs.filter(inClinic).forEach(d=>{ const v=d.data();
+      if(v.status==='confirmada' && v.recordatorio && !v.recordatorioEnviado && daysUntil(v.date)<=1)
+        upd(d.id, {recordatorioEnviado:true});
+    });
+  }
+  function confirmAsist(id){ upd(id, {asistencia:'confirmada'}); }
+  // Huecos libres que le encajan a este paciente (mismo profesional, y su tratamiento cabe).
+  // Se le ofrecen directamente en su app: recepción no tiene que llamar a nadie.
+  function offersFor(name){
+    const docs = allDocs.filter(inClinic);
+    const hoy = new Date().toISOString().slice(0,10);
+    const libres = docs.filter(d=>{ const v=d.data();
+      return v.status==='cancelada' && !v.cubiertoPor && v.date && v.date>=hoy && v.time && slotFreeFor(v.date, v.time, durOf(v), v.doctor); });
+    const mis = docs.filter(d=>{ const v=d.data();
+      return v.patientName===name && v.status==='pendiente' && v.waitlist; });
+    const out = [];
+    libres.forEach(sl=>{
+      const sv = sl.data();
+      mis.forEach(mi=>{ const mv = mi.data();
+        if(durOf(mv) <= durOf(sv) && docCompatible(mv.doctorPref||mv.doctor||'', sv.doctor||''))
+          out.push({slot:sl, mine:mi});
+      });
+    });
+    return out.sort((a,b)=>(a.slot.data().date+a.slot.data().time).localeCompare(b.slot.data().date+b.slot.data().time));
+  }
+  // El propio paciente coge el hueco desde su app
+  function takeSlot(slotId, myId){
+    const slot = allDocs.find(d=>d.id===slotId), mine = allDocs.find(d=>d.id===myId);
+    if(!slot || !mine) return;
+    const sv = slot.data();
+    if(sv.cubiertoPor){ renderMine(); return; }   // otro se ha adelantado
+    if(!slotFreeFor(sv.date, sv.time, durOf(mine.data()), sv.doctor)){ renderMine(); return; }   // ya lo ocupa otra cita
+    upd(myId, {date:sv.date, time:sv.time, doctor:sv.doctor, status:'confirmada', waitlist:false, origen:'hueco', verificada:false,
+               asistencia:'sin_confirmar', recordatorio:false, recordatorioEnviado:false, deHueco:true});
+    upd(slotId, {cubiertoPor: mine.data().patientName});
+  }
+
+  function assignSlot(slotId, candId){
+    const slot = allDocs.find(d=>d.id===slotId), cand = allDocs.find(d=>d.id===candId);
+    if(!slot || !cand) return;
+    const sv = slot.data();
+    upd(candId, {date:sv.date, time:sv.time||'', doctor:sv.doctor, status:'confirmada', waitlist:false, asistencia:'sin_confirmar', recordatorio:false, recordatorioEnviado:false});
+    upd(slotId, {cubiertoPor: cand.data().patientName});
+  }
+
+  // Cambiar hora: se elige primero la nueva hora y solo entonces se cancela la anterior (el hueco viejo pasa a la lista de espera)
+  let changing = null;
+  function renderChangeNote(){
+    document.getElementById('chgNote').innerHTML = changing
+      ? `<div class="remind" style="border-color:var(--accent)"><b>🔁 Estás modificando tu cita</b>
+         <p>Actual: ${changing.label}. Elige el día y la hora nuevos y pulsa «Elegir esta cita»; después podrás confirmarla.</p>
+         <div class="btnrow"><button class="mini" onclick="endChange()">Dejarlo como está</button></div></div>` : '';
+  }
+  function endChange(){ changing = null; renderChangeNote(); onTreatChange(); }
+  function goToForm(reason, target){
+    document.getElementById('p-reason').value = reason; onTreatChange();
+    // un instante después, cuando la pantalla ya se ha repintado, nos quedamos justo donde toca
+    setTimeout(()=>{ const el = document.getElementById(target || 'treatOpts');
+      if(el) el.scrollIntoView({behavior:'smooth', block: target ? 'start' : 'center'}); }, 60);
+  }
+  function startChange(id){
+    const d = mineDocs.find(x=>x.id===id); if(!d) return;
+    const v = d.data();
+    changing = {id, draft: v.status==='elegida', label: fmtDate(v.date)+(v.time?' · '+v.time:''), reason: v.reason, doctor: v.doctor};
+    document.getElementById('p-doctor').value = v.doctor || '';
+    // el calendario se abre en el mes de su cita actual, sin día elegido, y la pantalla se queda en el calendario
+    const base = v.date ? new Date(v.date+'T00:00:00') : new Date(), hoy = new Date();
+    calMonth = new Date(Math.max(new Date(base.getFullYear(), base.getMonth(), 1), new Date(hoy.getFullYear(), hoy.getMonth(), 1)));
+    document.getElementById('p-date').value = '';
+    renderChangeNote(); goToForm(v.reason, 'cal');
+  }
+  function startRecall(){ goToForm('Revisión'); }
+
+  // El paciente confirma que le atendieron y valora la experiencia, pasada ya su hora.
+  // Si era una revisión, queda programada la siguiente (+6 meses).
+  function markDone(id, estrellas){
+    const d = (mineDocs.find(x=>x.id===id) || allDocs.find(x=>x.id===id)); if(!d) return;
+    const v = d.data(), patch = {status:'realizada'};
+    if(estrellas) patch.valoracion = estrellas;
+    if(v.reason==='Revisión' && v.date){
+      const x = new Date(v.date+'T00:00:00'); x.setMonth(x.getMonth()+6);
+      patch.proximaRevision = `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`;
+      patch.avisoRevision = false;
+    }
+    upd(id, patch);
+  }
+  function sendRecall(id){ upd(id, {avisoRevision:true}); }
+  // Solo demo: crea una cita confirmada de ayer para que salga el mensaje de fin de cita
+  function simularFinCita(){
+    if(!db) return;
+    const name = document.getElementById('p-name').value.trim(); if(!name) return;
+    const yaHay = mineDocs.filter(inClinic).some(d=>{ const v=d.data(); return v.status==='confirmada' && yaPasada(v); });
+    if(yaHay){ renderMine(); return; }
+    const t = CLINIC.treatments[0], pro = t.pros[0];
+    const ayer = new Date(); ayer.setDate(ayer.getDate()-1);
+    db.collection('solicitudes').add({
+      patientName:name, clinicId:CLINIC.id, phone:document.getElementById('p-phone').value.trim(),
+      doctorPref:pro, duration:t.min, reason:t.name, date:iso(ayer), time:'10:00', doctor:pro,
+      status:'confirmada', origen:'demo', verificada:true, asistencia:'confirmada', recordatorio:true, recordatorioEnviado:true,
+      waitlist:false, createdAt:new Date().toISOString()
+    }).then(()=>{ document.getElementById('remindBox').scrollIntoView({behavior:'smooth', block:'start'}); }).catch(()=>{});
+  }
+  function noAtendido(id){ upd(id, {status:'pendiente', noAtendido:true}); }
+
+  // Tarjeta de la vista de recepción: una por paciente, con franja de color según el estado
+  const nameClick = n => `onclick="openPatient(decodeURIComponent('${encodeURIComponent(n)}'))"`;
+  function recepCard(d, docs, orden, opts={}){
+    const v = d.data(); let extra = '';
+    const mine = assignedPro(v.patientName);
+    const cc = cancelCount(v.patientName);
+    const asigLine = opts.hideAsig ? '' : (mine
+      ? `<div class="match">👤 ${esc(mine)} · <a href="#" onclick="openAssign('${esc(v.patientName)}');return false;">cambiar</a></div>`
+      : `<div class="match">👤 Sin odontólogo — <a href="#" onclick="openAssign('${esc(v.patientName)}');return false;">asignar</a></div>`);
+
+    if(v.status==='pendiente' && !v.date){
+      extra = `<div class="match">🕒 Esperando que se libere un hueco: la app se lo ofrece sola</div>
+        <div class="btnrow"><button class="mini bad" onclick="quitarLista('${d.id}')">Quitar de la lista</button></div>`;
+    }else if(v.status==='pendiente'){
+      extra = `<div class="btnrow">
+        <button class="mini pri" onclick="verificar('${d.id}')">✔ Confirmar</button>
+        <button class="mini bad" onclick="setStatus('${d.id}','cancelada')">✕ Cancelar</button></div>`;
+    }else if(isPorVerificar(v)){
+      extra = `<div class="match ok">📱 Reservada desde la app: el hueco ya está ocupado. Comprueba que está en tu agenda.</div>
+        <div class="btnrow">
+        <button class="mini pri" onclick="verificar('${d.id}')">✔ Confirmar</button>
+        <button class="mini bad" onclick="setStatus('${d.id}','cancelada')">✕ Cancelar</button></div>`;
+    }else if(v.status==='confirmada'){
+      if(!v.recordatorio){
+        extra = `<div class="btnrow"><button class="mini" onclick="sendReminder('${d.id}')">📲 Programar recordatorio</button></div>`;
+      }else if(!v.recordatorioEnviado){
+        extra = `<div class="match">📲 Recordatorio programado — le llegará el día antes</div>
+          <div class="btnrow"><button class="mini" onclick="sendReminderNow('${d.id}')">▶ Enviarlo ahora (demo)</button></div>`;
+      }else if(v.asistencia==='confirmada'){
+        extra = '<div class="match ok">✅ El paciente ha confirmado que viene</div>';
+      }else{
+        extra = '<div class="match">⏳ Aviso enviado — esperando su confirmación</div>';
+      }
+      extra += `<div class="btnrow"><button class="mini bad" onclick="setStatus('${d.id}','cancelada')">✕ Cancelar cita</button></div>`;
+    }else if(v.status==='cancelada'){
+      if(v.cubiertoPor) extra = `<div class="match ok">✅ Hueco recuperado — lo ha cogido ${esc(v.cubiertoPor)}</div>`;
+      else if(v.date){
+        const n = candidatesFor(d, docs).length;
+        extra = n
+          ? `<div class="match">🔔 Hueco de ${durOf(v)} min ofrecido a ${n} paciente${n>1?'s':''} en lista de espera — lo cogen desde su app, sin llamar</div>`
+          : `<div class="match">Hueco de ${durOf(v)} min · nadie en lista de espera encaja todavía</div>`;
+      }
+    }else if(v.status==='realizada' && v.reason==='Revisión' && v.proximaRevision){
+      extra = `<div class="match">📅 Próxima revisión: ${fmtDate(v.proximaRevision)}</div>` + (v.avisoRevision
+        ? '<div class="match ok">📨 Aviso de revisión enviado</div>'
+        : `<div class="btnrow"><button class="mini" onclick="sendRecall('${d.id}')">▶ Simular aviso a los 6 meses</button></div>`);
+    }
+
+    const wl = (v.status==='pendiente' && v.waitlist && v.date) ? ' · también en lista de espera' : '';
+    const flag = (opts.hideName ? '' : (cc>=2 ? `<span class="flag">canceló ${cc} veces</span>` : ''))
+      + (v.valoracion ? `<span class="flag" style="background:var(--ok-soft); color:var(--ok)">${'★'.repeat(v.valoracion)}</span>` : '')
+      + (v.noAtendido ? '<span class="flag">dice que no le atendieron</span>' : '');
+    const cuando = v.date ? fmtDate(v.date)+(v.time?' · '+esc(v.time):'') : 'Sin hora asignada';
+    const origenTxt = v.origen==='telefono' ? ' · 📞 recepción' : (esApp(v) ? ' · 📱 app' : '');
+    const titulo = opts.hideName
+      ? `<div class="li-name">${esc(v.reason||'Consulta')}${flag}</div>`
+      : `<div style="cursor:pointer" ${nameClick(v.patientName)} class="li-name">${esc(v.patientName)}${flag}</div>`;
+    const sub = opts.hideName
+      ? `${durOf(v)} min · ${cuando}${v.doctor?' · '+esc(v.doctor):''}${wl}${origenTxt}`
+      : `${esc(v.reason||'Consulta')} (${durOf(v)} min) · ${cuando}${v.doctor?' · '+esc(v.doctor):''}${wl}${origenTxt}`;
+    return `<li>
+      ${orden?`<div class="ord">${orden}</div>`:''}
+      <div style="min-width:0; flex:1;">
+        ${titulo}
+        <div class="li-sub">${sub}</div>
+        ${asigLine}
+        ${extra}
+      </div>
+    </li>`;
+  }
+
+  // Asignar odontólogo a un paciente (solo la clínica)
+  function openAssign(name){
+    const pros = CLINIC.pros.map(p=>p.name);
+    const cur = assignedPro(name);
+    const box = document.getElementById('assignBox');
+    box.innerHTML = `<div class="remind"><b>👤 Odontólogo de ${esc(name)}</b>
+      <p>${cur?`Ahora mismo: ${esc(cur)}`:'Sin asignar todavía'}. El paciente será atendido siempre por quien elijas aquí.</p>
+      <div class="btnrow">${pros.map(pn=>`<button class="mini${pn===cur?' pri':''}" onclick="doAssign('${esc(name)}','${esc(pn)}')">${esc(pn)}</button>`).join('')}
+      <button class="mini" onclick="document.getElementById('assignBox').innerHTML=''">Cerrar</button></div></div>`;
+    box.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  function doAssign(name, doctor){
+    setAssigned(name, doctor);
+    document.getElementById('assignBox').innerHTML = '';
+  }
+  // Agrupado por estado, para que lo nuevo siempre esté arriba y no se mezcle con lo ya cerrado
+  // --- Recepción organizada en pestañas: por confirmar, confirmadas, canceladas, lista de espera, pacientes, presupuestos ---
+  let recTab = 'pend', recPatient = null;
+  const cronoAsc = (a,b)=> ((a.data().date||'9999')+(a.data().time||'')).localeCompare((b.data().date||'9999')+(b.data().time||''));
+  const porCreacion = (a,b)=> (a.data().createdAt||'').localeCompare(b.data().createdAt||'');
+  const isPend = v => v.status==='pendiente' && !!v.date;
+  const esApp = v => ['app','presupuesto','hueco'].includes(v.origen);
+  const isPorVerificar = v => v.status==='confirmada' && v.verificada===false;   // reservada desde la app, aún sin comprobar
+  const isPorAprobar = v => isPend(v) || isPorVerificar(v);
+  // Recepción comprueba que la cita está bien y la da por confirmada
+  function verificar(id){ upd(id, {status:'confirmada', verificada:true, verificadaEn:new Date().toISOString()}); }
+  const isLista = v => v.status==='pendiente' && !v.date;
+  function setRecTab(t){ recTab = t; recPatient = null; renderRecepcion(); }
+  function openPatient(n){ recPatient = n; renderRecepcion(); setTimeout(()=>{ const e = document.getElementById('rtabs'); if(e) e.scrollIntoView({behavior:'smooth', block:'start'}); }, 60); }
+  function closePatient(){ recPatient = null; renderRecepcion(); }
+  function quitarLista(id){ upd(id, {status:'cancelada', canceladaPor:'clinica', listaQuitada:true}); }
+  function patientNames(docs){
+    const map = new Map();
+    docs.forEach(d=>{ const n = d.data().patientName; if(n && !map.has(norm(n))) map.set(norm(n), n); });
+    presuDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id).forEach(d=>{ const n = d.data().patientName; if(n && !map.has(norm(n))) map.set(norm(n), n); });
+    return [...map.values()];
+  }
+  const vacio = t => `<li style="justify-content:center; color:var(--ink-soft); font-size:12.5px;">${t}</li>`;
+  function patientsList(names, docs){
+    if(!names.length) return `<div class="boxsec"><ul>${vacio('Todavía no hay pacientes')}</ul></div>`;
+    const info = names.map(n=>{ const m = docs.filter(d=>norm(d.data().patientName)===norm(n)).map(d=>d.data());
+      return {n, pend:m.filter(isPorAprobar).length, conf:m.filter(v=>v.status==='confirmada').length, canc:m.filter(v=>v.status==='cancelada' && v.date).length}; })
+      .sort((a,b)=> ((b.pend>0)-(a.pend>0)) || a.n.localeCompare(b.n,'es'));
+    return `<div class="boxsec"><h3>👥 Pacientes <span class="count">${names.length}</span></h3><ul>` + info.map(p=>
+      `<li class="prow" ${nameClick(p.n)}><div style="flex:1; min-width:0;"><div class="li-name">${esc(p.n)}${p.pend?`<span class="flag" style="background:var(--warm-soft); color:var(--warm)">${p.pend} por aprobar</span>`:''}</div>
+       <div class="li-sub">${p.conf} confirmada${p.conf!==1?'s':''} · ${p.canc} cancelada${p.canc!==1?'s':''}</div></div><span class="chev">›</span></li>`).join('') + '</ul></div>';
+  }
+  function patientDetail(name, docs){
+    const mine = docs.filter(d=>norm(d.data().patientName)===norm(name));
+    const prio = {pendiente:0, confirmada:1, cancelada:2, realizada:3};
+    mine.sort((a,b)=>{ const x=a.data(), y=b.data();
+      return (prio[x.status]-prio[y.status]) || ((x.status==='cancelada'||x.status==='realizada') ? (y.date||'').localeCompare(x.date||'') : cronoAsc(a,b)); });
+    const conTel = mine.find(d=>d.data().phone), phone = conTel ? conTel.data().phone : '';
+    const pro = assignedPro(name), cc = cancelCount(name), buds = budgetsOf(name);
+    return `<button type="button" class="mini" onclick="closePatient()" style="margin-bottom:10px; padding:10px 14px;">← Todos los pacientes</button>
+      <div class="boxsec"><h3>👤 ${esc(name)}</h3>
+        <div class="li-sub">${phone?`<a href="tel:${esc(phone)}">${esc(phone)}</a> · `:''}${pro?'Odontólogo: <b>'+esc(pro)+'</b>':'Sin odontólogo asignado'} · <a href="#" onclick="openAssign(decodeURIComponent('${encodeURIComponent(name)}'));return false;">${pro?'cambiar':'asignar'}</a>${cc?` · canceló ${cc} vez${cc>1?'es':''}`:''}</div></div>
+      <div class="boxsec"><h3>📅 Citas <span class="count">${mine.length}</span></h3><ul>${mine.length ? mine.map(d=>recepCard(d,docs,null,{hideName:true,hideAsig:true})).join('') : vacio('Todavía no tiene citas')}</ul></div>` +
+      (buds.length ? `<div class="boxsec"><h3>📋 Presupuesto</h3><ul>${buds.map(budgetItem).join('')}</ul></div>` : '');
+  }
+  function renderRecepcion(docs){
+    docs = (docs || allDocs.filter(inClinic)).filter(d=>d.data().status!=='elegida');   // las citas solo elegidas aún no llegan a recepción
+    const pend = docs.filter(d=>isPorAprobar(d.data())), conf = docs.filter(d=>d.data().status==='confirmada' && d.data().verificada!==false),
+          canc = docs.filter(d=>d.data().status==='cancelada' && d.data().date), lista = docs.filter(d=>isLista(d.data()));
+    const nApp = docs.filter(d=>esApp(d.data())).length, nTel = docs.filter(d=>d.data().origen==='telefono').length;
+    document.getElementById('appStats').innerHTML = (nApp+nTel)
+      ? `📱 <b>${nApp}</b> cita${nApp!==1?'s':''} cogida${nApp!==1?'s':''} desde la app · 📞 <b>${nTel}</b> puesta${nTel!==1?'s':''} por recepción` : '';
+    const names = patientNames(docs);
+    const nPres = presuDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id).length;
+    const tabs = [['pend','⏳','Por confirmar',pend.length,true],['conf','✅','Confirmadas',conf.length],['canc','🔴','Canceladas',canc.length],
+                  ['lista','🕒','Lista de espera',lista.length],['pac','👥','Pacientes',names.length],['pres','📋','Presupuestos',nPres]];
+    document.getElementById('rtabs').innerHTML = tabs.map(([k,ico,l,n,alerta])=>
+      `<button type="button" class="rtab${recTab===k && !recPatient?' on':''}${alerta && n?' alert':''}" onclick="setRecTab('${k}')"><span>${ico} ${l}</span><span class="n">${n}</span></button>`).join('');
+    document.getElementById('recoverWrap').style.display = (recTab==='pac' && !recPatient) ? '' : 'none';
+    document.getElementById('budgetList').style.display = (recTab==='pres' && !recPatient) ? '' : 'none';
+    const main = document.getElementById('list-todas');
+    if(recPatient){ main.innerHTML = patientDetail(recPatient, docs); return; }
+    const box = (cls, ico, label, arr, texto, nota='') => `<div class="boxsec ${cls}"><h3>${ico} ${label} <span class="count">${arr.length}</span></h3>${nota?`<p class="hint" style="margin:-4px 0 10px;">${nota}</p>`:''}<ul>${arr.length ? arr.map((d,i)=>recepCard(d,docs,i+1)).join('') : vacio(texto)}</ul></div>`;
+    if(recTab==='pend') main.innerHTML = box('pend','⏳','Citas por confirmar', pend.sort(cronoAsc), 'No hay nada por confirmar', 'Las que reservan los pacientes desde la app ya ocupan su hueco. Comprueba que están en tu agenda y pulsa Confirmar; si ese día no podéis atender, Cancelar.');
+    else if(recTab==='conf') main.innerHTML = box('conf','✅','Citas confirmadas', conf.sort(cronoAsc), 'Todavía no hay citas confirmadas');
+    else if(recTab==='canc') main.innerHTML = box('canc','🔴','Citas canceladas', canc.sort(cronoAsc), 'No hay citas canceladas');
+    else if(recTab==='lista') main.innerHTML = box('pend','🕒','Pacientes en lista de espera', lista.sort(porCreacion), 'Nadie en lista de espera');
+    else if(recTab==='pac') main.innerHTML = patientsList(names, docs);
+    else main.innerHTML = '';
+  }
+
+  function renderList(el, docs, {showName}){
+    if(!docs.length){ el.innerHTML = '<li class="empty" style="width:100%;">Todavía no tienes citas.</li>'; return; }
+    el.innerHTML = docs.map(d=>{
+      const v = d.data();
+      let extra = '';
+      if(v.status==='elegida'){
+        extra = `${conflictos[d.id] ? '<div class="match" style="color:var(--danger)">Ese hueco se acaba de ocupar: pulsa Modificar y elige otro.</div>' : ''}
+          <div class="btnrow"><button class="mini pri" onclick="confirmarCita('${d.id}')">✔ Confirmar</button><button class="mini" onclick="startChange('${d.id}')">🔁 Modificar</button><button class="mini bad" onclick="cancelMine('${d.id}')">✕ Cancelar</button></div>`;
+      }else if(v.status!=='cancelada' && v.status!=='realizada'){
+        extra = `<div class="btnrow"><button class="mini" onclick="startChange('${d.id}')">🔁 Modificar</button><button class="mini bad" onclick="cancelMine('${d.id}')">Cancelar cita</button></div>`;
+      }
+      const etiqueta = v.status==='elegida' ? 'por confirmar' : (v.status==='confirmada' && v.verificada===false ? 'reservada' : v.status);
+      const clase = v.status==='elegida' ? 'elegida' : (etiqueta==='reservada' ? 'reservada' : v.status);
+      const wl = (v.status==='pendiente' && v.waitlist) ? ' · en lista de espera' : '';
+      return `<li>
+        <div style="min-width:0; flex:1;">
+          <div class="li-name">${esc(v.reason||'Consulta')}</div>
+          <div class="li-sub">${v.date ? fmtDate(v.date)+(v.time?' · '+esc(v.time):'') : 'Sin hora asignada'}${v.doctor?' · '+esc(v.doctor):''}${wl}</div>
+          ${extra}
+        </div>
+        <span class="tag ${clase}">${etiqueta}</span>
+      </li>`;
+    }).join('');
+  }
+
+  // Cambio de estado explícito (nunca cíclico): recepción elige qué pasa con la cita
+  function setStatus(id, next){
+    if(!db || !next) return;
+    const patch = {status: next};
+    if(next==='cancelada') patch.canceladaPor = 'clinica';
+    if(next!=='cancelada') patch.cubiertoPor = '';
+    upd(id, patch);
+  }
+
+  function baseRequest(){
+    const t = curTreat();
+    return {
+      patientName: document.getElementById('p-name').value.trim(), clinicId: CLINIC.id,
+      phone: document.getElementById('p-phone').value.trim(),
+      doctorPref: document.getElementById('p-doctor').value,
+      duration: t.min, reason: t.name, status: 'pendiente',
+      asistencia: 'sin_confirmar', recordatorio: false, createdAt: new Date().toISOString()
+    };
+  }
+  function submitSolicitud(){
+    if(!db || !chosen) return;
+    const reason = curTreat().name;
+    if(!changing && activeFor(reason).length>0) return;   // una cita por tratamiento: se modifica, no se acumula
+    const r = baseRequest(); if(!r.patientName) return;
+    const slot = chosen, date = document.getElementById('p-date').value; // se captura antes: al repintar, 'chosen' se limpia
+    const fin = ()=>{
+      changing = null; renderChangeNote(); onTreatChange();
+      document.getElementById('p-date').value=''; renderCal(); renderSlots();
+      setTimeout(()=>{ const l = document.getElementById('list-mias'); if(l) l.scrollIntoView({behavior:'smooth', block:'center'}); }, 120);
+    };
+    if(changing && changing.draft){                     // modificar una cita que aún no estaba confirmada
+      delete conflictos[changing.id];
+      upd(changing.id, {date, time:slot.time, doctor:slot.doctor}); fin(); return;
+    }
+    const reemplaza = changing ? changing.id : '';      // modificar una ya reservada: la nueva se confirma y entonces sustituye a la anterior
+    db.collection('solicitudes').add({...r, date, time:slot.time, doctor:slot.doctor, waitlist:false,
+      status:'elegida', origen:'app', verificada:false, modificada:!!reemplaza, reemplaza
+    }).then(fin).catch(()=>{});
+  }
+  function joinWaitlistOnly(){
+    if(!db) return;
+    const r = baseRequest(); if(!r.patientName) return;
+    db.collection('solicitudes').add({...r, date:'', time:'', doctor: r.doctorPref===ANY ? ANY : r.doctorPref, waitlist:true}).catch(()=>{});
+  }
+
+  // ¿Ya terminó la cita? (fecha y hora pasadas, contando su duración)
+  function yaPasada(v){
+    if(!v.date) return false;
+    const fin = new Date(v.date + 'T' + (v.time || '00:00') + ':00');
+    fin.setMinutes(fin.getMinutes() + durOf(v));
+    return fin <= new Date();
+  }
+
+  function renderMine(){
+    const listEl = document.getElementById('list-mias');
+    if(!document.getElementById('p-name').value.trim()){ listEl.innerHTML=''; document.getElementById('remindBox').innerHTML=''; return; }
+    const mine = mineDocs.filter(inClinic).sort((a,b)=> ((b.data().status==='elegida') - (a.data().status==='elegida')) || byDate(a,b));
+    document.getElementById('remindBox').innerHTML = mine.filter(d=>{const v=d.data(); return v.status==='confirmada' && v.recordatorioEnviado && v.asistencia!=='confirmada';}).map(d=>{
+      const v = d.data();
+      return `<div class="push">
+        <div class="push-top"><span class="push-ico">${esc(CLINIC.logo)}</span><span>${esc(CLINIC.name)} · ahora</span></div>
+        <b>Mañana tienes cita</b>
+        <p>${esc(v.reason||'')} · ${fmtDate(v.date)}${v.time?' · '+esc(v.time):''}${v.doctor?' · '+esc(v.doctor):''}</p>
+        <div class="push-btns"><button class="yes" onclick="confirmAsist('${d.id}')">✔ Confirmar</button><button class="no" onclick="cancelMine('${d.id}')">✕ Cancelar</button></div></div>`;
+    }).join('');
+    const activeRev = mine.some(d=>{const v=d.data(); return v.reason==='Revisión' && (v.status==='pendiente'||v.status==='confirmada'||v.status==='elegida');});
+    if(!activeRev){
+      document.getElementById('remindBox').innerHTML += mine.filter(d=>{const v=d.data(); return v.reason==='Revisión' && v.status==='realizada' && v.avisoRevision;}).slice(0,1).map(()=>
+        `<div class="remind"><b>🦷 Te toca tu revisión semestral</b><p>Han pasado 6 meses desde tu última revisión (unos 20 min). Reserva tu hueco en un toque.</p><div class="btnrow"><button class="mini pri" onclick="startRecall()">Reservar revisión</button></div></div>`).join('');
+    }
+    const hasUpcoming = mine.some(d=>{const v=d.data(); return v.status==='pendiente'||v.status==='confirmada';});
+    if(!hasUpcoming){
+      const last = mine.filter(d=>{const v=d.data(); return v.status==='realizada' && v.recallSent;}).sort(byDate).slice(-1)[0];
+      if(last){
+        const lv = last.data(), t = CLINIC.treatments.find(x=>x.name===lv.reason);
+        document.getElementById('remindBox').innerHTML += `<div class="remind"><b>🦷 Hace tiempo que no te vemos</b><p>Tu última visita fue ${esc(lv.reason||'')}, el ${fmtDate(lv.date)}. ¿Pedimos tu próxima cita?</p><div class="btnrow"><button class="mini pri" onclick="goToForm('${t?esc(t.name):'Revisión'}')">Pedir cita</button></div></div>`;
+      }
+    }
+    mine.filter(d=>{ const v=d.data(); return v.status==='confirmada' && yaPasada(v); }).slice(0,2).forEach(d=>{
+      const v = d.data();
+      document.getElementById('remindBox').insertAdjacentHTML('afterbegin',
+        `<div class="remind" style="border-color:var(--ok)"><b>¿Cómo fue tu cita?</b>
+         <p>${esc(v.reason)} · ${fmtDate(v.date)}${v.time?' · '+esc(v.time):''}${v.doctor?' · '+esc(v.doctor):''}. Confirma que te atendieron y valora tu experiencia.</p>
+         <div class="btnrow">${[1,2,3,4,5].map(n=>`<button class="mini" onclick="markDone('${d.id}',${n})" title="${n} de 5">${'★'.repeat(n)}</button>`).join('')}</div>
+         <div class="btnrow"><button class="mini" onclick="markDone('${d.id}')">Me atendieron (sin valorar)</button>
+         <button class="mini bad" onclick="noAtendido('${d.id}')">No me atendieron</button></div></div>`);
+    });
+    const nombre = document.getElementById('p-name').value.trim();
+    offersFor(nombre).slice(0,3).forEach(({slot, mine:mi})=>{
+      const sv = slot.data(), mv = mi.data();
+      document.getElementById('remindBox').insertAdjacentHTML('afterbegin',
+        `<div class="remind" style="border-color:var(--ok)"><b>🎉 Se ha liberado un hueco antes</b>
+         <p>${fmtDate(sv.date)} · ${esc(sv.time)} · ${esc(sv.doctor)} — para tu ${esc(mv.reason)}. Primero que lo coja, se lo queda.</p>
+         <div class="btnrow"><button class="mini pri" onclick="takeSlot('${slot.id}','${mi.id}')">Cogerlo</button></div></div>`);
+    });
+    // Hueco que la app le ofrece (uno cada vez, con 30 minutos para responder)
+    allOffers().filter(o=>norm(o.v.patientName)===norm(nombre) && offerActive(o.v)).forEach(o=>{
+      const v = o.v;
+      const hasta = new Date(new Date(v.sentAt).getTime()+OFFER_MIN*60000).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+      const dias = daysSince((v.budgetSince||'').slice(0,10));
+      const recuerdo = (v.budgetSince && isFinite(dias))
+        ? (dias<=0 ? 'Hoy estuviste en la clínica' : `Hace ${dias} día${dias>1?'s':''} estuviste en la clínica`) + ` y te quedó pendiente ${esc(v.reason)}. ` : '';
+      document.getElementById('remindBox').insertAdjacentHTML('afterbegin',
+        `<div class="push"><div class="push-top"><span class="push-ico">${esc(CLINIC.logo)}</span><span>${esc(CLINIC.name)} · hueco disponible</span></div>
+         <b>Hay un hueco para tu ${esc(v.reason)}</b>
+         <p>${recuerdo}${fmtDate(v.date)} · ${esc(v.time)} · ${esc(v.doctor)} (${v.min} min). Respóndenos antes de las ${hasta}.</p>
+         <div class="push-btns"><button class="yes" onclick="acceptOffer('${o.id}')">✔ La quiero</button><button class="no" onclick="rejectOffer('${o.id}')">✕ No, gracias</button></div></div>`);
+    });
+    renderBudgetMine();
+    if(urgMsg) document.getElementById('remindBox').insertAdjacentHTML('afterbegin', urgMsg);
+    renderList(listEl, mine, {showName:false});
+    updateSubmitState();
+  }
+
+  // --- Presupuestos: los gestiona la clínica (la app nunca los tacha sola) ---
+  let bSel = new Set(), bEditId = null, budgetOpen = false;
+  function renderBTreatOpts(){
+    document.getElementById('bTreatOpts').innerHTML = CLINIC.treatments.map(t=>
+      `<button type="button" class="opt${bSel.has(t.name)?' on':''}" onclick="toggleBTreat('${esc(t.name)}')">${esc(t.name)}<small>${t.min} min</small></button>`).join('');
+  }
+  function toggleBTreat(name){ if(bSel.has(name)) bSel.delete(name); else bSel.add(name); renderBTreatOpts(); }
+  function editBudget(id){
+    const d = presuDocs.find(x=>x.id===id); if(!d) return;
+    bEditId = id;
+    document.getElementById('b-name').value = d.data().patientName;
+    bSel = new Set((d.data().items||[]).map(it=>it.reason)); renderBTreatOpts();
+    const f = document.getElementById('form-presu'); f.classList.add('open'); f.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  async function saveBudget(){
+    const name = document.getElementById('b-name').value.trim();
+    const st = document.getElementById('b-status');
+    const file = (document.getElementById('b-pdf').files || [])[0];
+    if(!db || !name){ st.textContent = 'Escribe el nombre del paciente.'; return; }
+    if(!bSel.size){ st.textContent = 'Toca al menos un tratamiento del presupuesto.'; return; }
+    if(!bEditId && !file){ st.textContent = 'Adjunta el PDF del presupuesto.'; return; }
+    let pdfId = null;
+    if(file){
+      st.textContent = 'Subiendo el PDF…';
+      try{
+        if(!assetsCap) assetsCap = await claudeUse('assets');
+        const r = assetsCap && await assetsCap.upload(file);
+        pdfId = r && r.id;
+      }catch(e){ pdfId = null; }
+      if(!pdfId){ st.textContent = 'No se pudo subir el PDF. Inténtalo de nuevo.'; return; }
+    }
+    const items = [...bSel].map(r=>({reason:r}));
+    try{
+      if(bEditId){
+        const old = presuDocs.find(x=>x.id===bEditId);
+        const patch = {patientName:name, items, elegidos:((old && old.data().elegidos)||[]).filter(r=>bSel.has(r))};
+        if(pdfId){ patch.pdf = pdfId; patch.pdfName = file.name; }
+        await db.collection('presupuestos').doc(bEditId).update(patch);
+      }else{
+        await db.collection('presupuestos').add({clinicId:CLINIC.id, patientName:name, items, pdf:pdfId, pdfName:file.name,
+          elegidos:[], createdAt:new Date().toISOString()});
+      }
+    }catch(e){ st.textContent = 'No se pudo guardar el presupuesto.'; return; }
+    bEditId = null; document.getElementById('b-name').value=''; document.getElementById('b-pdf').value=''; st.textContent='';
+    bSel = new Set(); renderBTreatOpts();
+    document.getElementById('form-presu').classList.remove('open');
+  }
+  function deleteBudget(id){ if(db) db.collection('presupuestos').doc(id).delete().catch(()=>{}); }
+  const budgetsOf = name => presuDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id && norm(d.data().patientName)===norm(name));
+  function pendingItems(name){
+    const seen = new Set(), out = [];
+    budgetsOf(name).forEach(d=>(d.data().items||[]).forEach(it=>{ if(!seen.has(it.reason)){ seen.add(it.reason); out.push(it.reason); } }));
+    return out;
+  }
+  // Lo que se le ofrece: lo que el paciente ha elegido en su presupuesto; si aún no ha elegido nada, todo el presupuesto
+  function wantedItems(name){
+    const all = [], chosen = [];
+    budgetsOf(name).forEach(d=>{ const v = d.data(); (v.items||[]).forEach(it=>all.push(it.reason)); (v.elegidos||[]).forEach(r=>chosen.push(r)); });
+    const c = [...new Set(chosen)].filter(r=>all.includes(r));
+    return c.length ? c : [...new Set(all)];
+  }
+  function toggleWant(id, reason){
+    const d = presuDocs.find(x=>x.id===id); if(!d || !db) return;
+    const cur = new Set(d.data().elegidos || []);
+    if(cur.has(reason)) cur.delete(reason); else cur.add(reason);
+    db.collection('presupuestos').doc(id).update({elegidos:[...cur]}).catch(()=>{});
+  }
+  function hasActiveAppt(name, reason){
+    return allDocs.filter(inClinic).some(d=>{ const v=d.data();
+      return norm(v.patientName)===norm(name) && (!reason || v.reason===reason) && (v.status==='pendiente'||v.status==='confirmada') && v.date && !yaPasada(v); });
+  }
+  // Paciente: ve el presupuesto que le subió la clínica
+  function toggleBudgetMine(){ budgetOpen = !budgetOpen; renderBudgetMine(); }
+  function renderBudgetMine(){
+    const box = document.getElementById('budgetMine'); if(!box) return;
+    if(!budgetOpen){ box.innerHTML = ''; return; }
+    const docs = budgetsOf(document.getElementById('p-name').value.trim());
+    if(!docs.length){ box.innerHTML = '<div class="locked"><b>Todavía no tienes presupuesto</b><small>Cuando la clínica te lo prepare, aparecerá aquí.</small></div>'; return; }
+    box.innerHTML = docs.map(d=>{
+      const v = d.data(), elegidos = new Set(v.elegidos||[]);
+      const pdf = v.pdf ? `<a class="mini pri pdf-link" style="margin-top:8px" href="${blobUrl(v.pdf)}" target="_blank" rel="noopener">📄 Ver mi presupuesto (PDF)</a>` : '';
+      return `<div class="locked" style="background:var(--surface); border-color:var(--line)"><b>Presupuesto de la clínica</b>
+        <small>Preparado el ${fmtDate((v.createdAt||'').slice(0,10))}</small>${pdf}
+        <p class="hint" style="margin:12px 0 8px;">Toca lo que quieres hacerte. Te avisaremos en cuanto haya un hueco.</p>
+        <div class="opts">${(v.items||[]).map(it=>{ const t = CLINIC.treatments.find(x=>x.name===it.reason);
+          return `<button type="button" class="opt${elegidos.has(it.reason)?' on':''}" onclick="toggleWant('${d.id}','${esc(it.reason)}')">${esc(it.reason)}${t?`<small>${t.min} min</small>`:''}</button>`; }).join('')}</div>
+        ${elegidos.size ? `<button type="button" class="mini pri" style="width:100%; padding:12px;" onclick="goToForm('${esc([...elegidos][0])}')">Pedir cita ahora</button>` : ''}
+        <small style="margin-top:8px">Si en la consulta cambia el tratamiento, la clínica actualiza tu presupuesto.</small></div>`;
+    }).join('');
+  }
+
+  // --- Ofertas de hueco: se ofrece a UN paciente, con 30 min para responder; si no, pasa al siguiente ---
+  const OFFER_MIN = 15, COOLDOWN_MIN = 60, MIN_LEAD_MIN = 120, OFFER_DAYS = 14;
+  const offerId = (p,date,time,doctor) => `${CLINIC.id}--${slug(p)}--${date}--${time.replace(':','')}--${slug(doctor)}`;
+  const offerActive = (v, now=Date.now()) => v.state==='enviada' && (now - new Date(v.sentAt).getTime()) < OFFER_MIN*60000;
+  const effState = (v, now=Date.now()) => (v.state==='enviada' && !offerActive(v,now)) ? 'caducada' : v.state;
+  function allOffers(){
+    const seen = new Set(), out = [];
+    ofertaDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id).forEach(d=>{
+      seen.add(d.id); const l = localOffers[d.id], v = d.data();
+      out.push({id:d.id, v: (l && (l.sentAt||'') > (v.sentAt||'')) ? l : v});   // lo que acabamos de escribir gana a lo antiguo
+    });
+    Object.entries(localOffers).forEach(([id,v])=>{ if(!seen.has(id) && v.clinicId===CLINIC.id) out.push({id, v}); });
+    return out;
+  }
+  function setOffer(id, patch){
+    if(localOffers[id]) Object.assign(localOffers[id], patch);
+    if(db) db.collection('ofertas').doc(id).update(patch).catch(()=>{});
+  }
+  function slotFreeFor(date, time, min, pro, ignoreOfferId, ignoreAppt){
+    const st = toMin(time);
+    return busyFor(date, pro, ignoreOfferId, ignoreAppt).every(([a,b])=> st+min<=a || st>=b);
+  }
+  let engineBusy = false, engineAgain = false;
+  function runOfferEngine(){
+    if(engineBusy){ engineAgain = true; return; }
+    engineBusy = true;
+    try{ engineStep(); } finally { engineBusy = false; }
+    if(engineAgain){ engineAgain = false; runOfferEngine(); }
+  }
+  function engineStep(){
+    if(!db || !(ready.sol && ready.pre && ready.ofe && ready.pac)) return;   // no actuar con datos a medias
+    const now = Date.now();
+    allOffers().forEach(({id,v})=>{ if(v.state==='enviada' && !offerActive(v,now)) setOffer(id,{state:'caducada'}); });
+    const names = [...new Set(presuDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id)
+      .sort((a,b)=>(a.data().createdAt||'').localeCompare(b.data().createdAt||'')).map(d=>d.data().patientName))];
+    names.forEach(name=>{
+      const items = wantedItems(name).filter(r=>!hasActiveAppt(name, r));   // no se le ofrece lo que ya tiene reservado
+      if(!items.length) return;
+      const mine = allOffers().filter(o=>norm(o.v.patientName)===norm(name));
+      if(mine.some(o=>offerActive(o.v,now))) return;                                   // ya tiene una oferta abierta
+      if(mine.some(o=>['rechazada','caducada'].includes(effState(o.v,now)) && (now-new Date(o.v.sentAt).getTime()) < COOLDOWN_MIN*60000)) return;   // descanso de 1 h; pasado ese tiempo se le puede volver a ofrecer
+      const previos = new Set(mine.filter(o=>o.v.state==='rechazada').map(o=>`${o.v.reason}|${o.v.date}|${o.v.time}|${o.v.doctor}`));   // lo que rechazó, no se repite
+      const asig = assignedPro(name);
+      let best = null;
+      items.forEach(reason=>{
+        const t = CLINIC.treatments.find(x=>x.name===reason); if(!t) return;
+        const sel = (asig && t.pros.includes(asig)) ? asig : (t.pros.length===1 ? t.pros[0] : ANY);
+        for(let i=0;i<OFFER_DAYS;i++){
+          const x = new Date(); x.setDate(x.getDate()+i); const ds = iso(x);
+          const sl = slotsFor(ds,t,sel).find(sv=> (new Date(ds+'T'+sv.time+':00') - now) >= MIN_LEAD_MIN*60000
+            && !previos.has(`${reason}|${ds}|${sv.time}|${sv.doctor}`));
+          if(sl){ if(!best || (ds+sl.time) < (best.date+best.time)) best = {reason, date:ds, time:sl.time, doctor:sl.doctor, min:t.min}; break; }
+        }
+      });
+      if(best){
+        const id = offerId(name, best.date, best.time, best.doctor);
+        const rec = {clinicId:CLINIC.id, patientName:name, ...best, sentAt:new Date(now).toISOString(), state:'enviada',
+                     budgetSince:(budgetsOf(name)[0]?.data().createdAt)||''};
+        localOffers[id] = rec;
+        db.collection('ofertas').doc(id).set(rec).catch(()=>{});
+      }
+    });
+  }
+  function acceptOffer(id){
+    const o = allOffers().find(x=>x.id===id); if(!o || !db) return;
+    const v = o.v;
+    if(!offerActive(v)){ renderMine(); return; }
+    if(hasActiveAppt(v.patientName, v.reason)) return;
+    if(!slotFreeFor(v.date, v.time, v.min, v.doctor, id)){ setOffer(id,{state:'caducada'}); return; }
+    db.collection('solicitudes').add({
+      patientName:v.patientName, clinicId:CLINIC.id, phone:document.getElementById('p-phone').value.trim(),
+      doctorPref:v.doctor, duration:v.min, reason:v.reason, date:v.date, time:v.time, doctor:v.doctor,
+      status:'confirmada', origen:'presupuesto', verificada:false, asistencia:'sin_confirmar', recordatorio:false, recordatorioEnviado:false,
+      waitlist:false, createdAt:new Date().toISOString()
+    }).then(()=>{
+      setOffer(id,{state:'aceptada'});
+      const isDentist = CLINIC.treatments.some(tt=>tt.name==='Revisión' && tt.pros.includes(v.doctor));
+      if(isDentist && !assignedPro(v.patientName)) setAssigned(v.patientName, v.doctor);
+    }).catch(()=>{});
+  }
+  function rejectOffer(id){ setOffer(id,{state:'rechazada'}); }
+  // Solo demo: hace como si hubieran pasado 30 minutos sin respuesta
+  function simularCaducidad(id){ setOffer(id,{sentAt:new Date(Date.now()-(OFFER_MIN+1)*60000).toISOString()}); }
+
+  function budgetItem(d){
+    const now = Date.now(), offs = allOffers();
+    const hora = t => new Date(t).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    const v = d.data(), mine = offs.filter(o=>norm(o.v.patientName)===norm(v.patientName));
+    const act = mine.find(o=>offerActive(o.v,now));
+    const ult = mine.filter(o=>!offerActive(o.v,now)).sort((a,b)=>(b.v.sentAt||'').localeCompare(a.v.sentAt||''))[0];
+    let estado;
+    if(act) estado = `<div class="match ok">📨 Oferta enviada: ${fmtDate(act.v.date)} · ${esc(act.v.time)} · ${esc(act.v.doctor)} — responde antes de las ${hora(new Date(act.v.sentAt).getTime()+OFFER_MIN*60000)}</div>
+      <div class="btnrow"><button class="mini" onclick="simularCaducidad('${act.id}')">⏩ Simular ${OFFER_MIN} min sin respuesta (demo)</button></div>`;
+    else if(wantedItems(v.patientName).length && wantedItems(v.patientName).every(r=>hasActiveAppt(v.patientName, r))) estado = '<div class="match">Ya tiene una cita reservada</div>';
+    else if(ult && effState(ult.v,now)==='rechazada') estado = '<div class="match">Rechazó la última oferta</div>';
+    else if(ult && effState(ult.v,now)==='caducada') estado = '<div class="match">No respondió a la última oferta: el hueco pasó a otro paciente</div>';
+    else estado = '<div class="match">En espera de un hueco libre que le encaje</div>';
+    const eleg = (v.elegidos||[]).length ? `<div class="match ok">Ha elegido: ${v.elegidos.map(esc).join(' · ')}</div>`
+      : '<div class="match">Aún no ha elegido: se le ofrecen todos los tratamientos del presupuesto</div>';
+    const desde = (v.createdAt||'').slice(0,10);
+    const vino = allDocs.filter(inClinic).some(x=>{ const y=x.data(); return norm(y.patientName)===norm(v.patientName) && y.status==='realizada' && (y.date||'')>=desde; });
+    const pdf = v.pdf ? `<a class="mini pri pdf-link" href="${blobUrl(v.pdf)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '';
+    return `<li><div style="min-width:0; flex:1;"><div style="cursor:pointer" ${nameClick(v.patientName)} class="li-name">${esc(v.patientName)}</div>
+      <div class="li-sub">${(v.items||[]).map(it=>esc(it.reason)).join(' · ')}</div>
+      ${eleg}${estado}
+      ${vino ? '<div class="match">🔎 Ha venido a la clínica desde que se subió este presupuesto: revisa si sigue igual.</div>' : ''}
+      <div class="btnrow">${pdf}<button class="mini" onclick="editBudget('${d.id}')">✏️ Editar</button><button class="mini bad" onclick="deleteBudget('${d.id}')">Quitar</button></div></div></li>`;
+  }
+  function renderBudgets(){
+    const box = document.getElementById('budgetList'); if(!box) return;
+    const list = presuDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id)
+      .sort((a,b)=>(a.data().createdAt||'').localeCompare(b.data().createdAt||''));
+    if(!list.length){ box.innerHTML='<div class="boxsec"><ul><li style="justify-content:center; color:var(--ink-soft); font-size:12.5px;">Todavía no hay presupuestos subidos</li></ul></div>'; return; }
+    const now = Date.now(), offs = allOffers();
+    const activas = offs.filter(o=>offerActive(o.v,now)).length, acept = offs.filter(o=>o.v.state==='aceptada').length;
+    box.innerHTML = `<div class="boxsec"><h3>📋 Presupuestos subidos <span class="count">${list.length}</span></h3>
+      <p class="hint" style="margin:-4px 0 10px;">Cada hueco libre se ofrece a un paciente cada vez; si en ${OFFER_MIN} minutos no responde, pasa al siguiente con el mismo tratamiento.
+      Ahora: ${activas} oferta${activas!==1?'s':''} esperando respuesta · ${acept} aceptada${acept!==1?'s':''}.</p><ul>${list.map(budgetItem).join('')}</ul></div>`;
+  }
+
+  // --- Urgencias: aviso inmediato con fotos; la clínica llama al paciente ---
+  let assetsCap = null, pendingPhotos = [];
+  function toggleForm(id, forceOpen){
+    const el = document.getElementById(id);
+    if(id==='form-presu' && !el.classList.contains('open')){
+      bEditId = null; bSel = new Set(); document.getElementById('b-name').value=''; document.getElementById('b-pdf').value=''; document.getElementById('b-status').textContent=''; renderBTreatOpts();
+    }
+    if(id==='form-urg' && !el.classList.contains('open')){
+      urgMsg = '';
+      const un=document.getElementById('u-name'), up=document.getElementById('u-phone');
+      if(!un.value) un.value = document.getElementById('p-name').value;
+      if(!up.value) up.value = document.getElementById('p-phone').value;
+    }
+    if(forceOpen) el.classList.add('open'); else el.classList.toggle('open');
+  }
+  function pickPhotos(ev){
+    pendingPhotos = [...ev.target.files].slice(0,4);
+    document.getElementById('u-preview').innerHTML = pendingPhotos.map(f=>
+      `<img src="${URL.createObjectURL(f)}" alt="foto">`).join('');
+    document.getElementById('u-status').textContent = pendingPhotos.length ? `${pendingPhotos.length} foto(s) seleccionada(s).` : '';
+  }
+  async function sendUrgencia(){
+    const phone = document.getElementById('u-phone').value.trim();
+    const name = document.getElementById('u-name').value.trim() || document.getElementById('p-name').value.trim();
+    const text = document.getElementById('u-text').value.trim();
+    const st = document.getElementById('u-status'), btn = document.getElementById('u-submit');
+    if(!phone){ st.textContent = 'Necesitamos tu teléfono para poder llamarte.'; return; }
+    if(!db){ st.textContent = 'Sin conexión — llama directamente a la clínica.'; return; }
+    btn.disabled = true; st.textContent = 'Enviando…';
+    const photoIds = [];
+    for(const f of pendingPhotos){
+      try{
+        if(!assetsCap) assetsCap = await claudeUse('assets');
+        if(!assetsCap) break;
+        const r = await assetsCap.upload(f);
+        photoIds.push(r.id);
+      }catch(e){ /* si una foto falla, la urgencia se envía igual */ }
+    }
+    try{
+      await db.collection('urgencias').add({
+        clinicId: CLINIC.id, patientName: name || 'Paciente', phone, text,
+        photos: photoIds, estado: 'nueva', createdAt: new Date().toISOString()
+      });
+      st.textContent = '';
+      document.getElementById('u-text').value=''; document.getElementById('u-files').value='';
+      document.getElementById('u-preview').innerHTML=''; pendingPhotos = [];
+      toggleForm('form-urg');
+      urgMsg = `<div class="remind" style="border-color:#D32F2F; background:var(--danger-soft)"><b>🚨 Urgencia enviada</b><p>Mantente pendiente del teléfono: la clínica te llamará.</p></div>`;
+      document.getElementById('remindBox').insertAdjacentHTML('afterbegin', urgMsg);
+    }catch(e){ st.textContent = 'No se pudo enviar — llama directamente a la clínica.'; }
+    btn.disabled = false;
+  }
+  function urgAtender(id){ if(db) db.collection('urgencias').doc(id).update({estado:'atendida'}).catch(()=>{}); }
+  function renderUrgencias(){
+    const box = document.getElementById('list-urgencias');
+    const list = urgDocs.filter(d=>(d.data().clinicId||'sonrisa')===CLINIC.id)
+      .sort((a,b)=>(b.data().createdAt||'').localeCompare(a.data().createdAt||''));
+    if(!list.length){ box.innerHTML=''; return; }
+    const nuevas = list.filter(d=>d.data().estado==='nueva');
+    box.innerHTML = `<div class="group-h" style="color:#D32F2F">🚨 Urgencias${nuevas.length?` (${nuevas.length} sin atender)`:' — todas atendidas'}</div>` +
+      list.map(d=>{
+        const v = d.data(), hora = new Date(v.createdAt).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        const fotos = (v.photos||[]).map(pid=>`<img src="${blobUrl(pid)}" alt="foto de la urgencia" onclick="window.open('${blobUrl(pid)}','_blank')">`).join('');
+        return `<li class="${v.estado==='nueva'?'urg-card':''}">
+          <div style="min-width:0; flex:1;">
+            <div class="li-name">${esc(v.patientName)}</div>
+            <div class="li-sub">${hora} · <a href="tel:${esc(v.phone)}"><b>${esc(v.phone)}</b></a></div>
+            ${v.text?`<div class="match"><b>${esc(v.text)}</b></div>`:''}
+            ${fotos?`<div class="urg-photos">${fotos}</div>`:''}
+            ${v.estado==='nueva'
+              ? `<div class="btnrow"><a class="mini pri" href="tel:${esc(v.phone)}" style="text-decoration:none">📞 Llamar</a><button class="mini" onclick="urgAtender('${d.id}')">✔ Atendida</button></div>`
+              : '<div class="match ok">✅ Atendida</div>'}
+          </div>
+        </li>`;
+      }).join('');
+  }
+
+  function renderAll(){
+    const docs = allDocs.filter(inClinic);
+    autoSendReminders();
+    renderUrgencias();
+    renderBudgets();
+    renderRecover(docs);
+    renderRecepcion(docs);
+  }
+  function subscribeMine(){
+    if(!db) return;
+    if(unsubMine) unsubMine();
+    const name = document.getElementById('p-name').value.trim();
+    if(!name){ mineDocs=[]; renderMine(); return; }
+    unsubMine = db.collection('solicitudes').where('patientName','==',name)
+      .onSnapshot(snap=>{ mineDocs=[...snap.docs]; renderMine(); }, ()=>{});
+  }
+  function onNameChange(){ subscribeMine(); onTreatChange(); }
+  function subscribeAll(){
+    if(!db) return;
+    const go = () => runOfferEngine();
+    db.collection('solicitudes').onSnapshot(snap=>{ allDocs=[...snap.docs]; ready.sol=true; renderAll(); renderMine(); go(); }, ()=>{});
+    db.collection('presupuestos').onSnapshot(snap=>{ presuDocs=[...snap.docs]; ready.pre=true; renderAll(); renderMine(); go(); }, ()=>{});
+    db.collection('ofertas').onSnapshot(snap=>{ ofertaDocs=[...snap.docs]; snap.docs.forEach(d=>{ const l = localOffers[d.id]; if(l && (d.data().sentAt||'') >= (l.sentAt||'')) delete localOffers[d.id]; }); ready.ofe=true; renderAll(); renderMine(); go(); }, ()=>{});
+    db.collection('pacientes').onSnapshot(snap=>{ asigDocs=[...snap.docs]; ready.pac=true; renderAll(); renderMine(); onTreatChange(); go(); }, ()=>{});
+    db.collection('urgencias').onSnapshot(snap=>{ urgDocs=[...snap.docs]; renderUrgencias(); }, ()=>{});
+    if(typeof setInterval==='function') setInterval(()=>{ renderMine(); renderBudgets(); go(); }, 30000);   // caducidad de ofertas
+  }
+
+  // Alta manual (teléfono / presencial): usa el mismo cálculo de huecos reales
+  // que el paciente, así que bloquea el hueco para todo el mundo por igual.
+  let mTreatName = null, mProName = null, mChosen = null, mSlotsCur = [];
+  function mTreat(){ return CLINIC.treatments.find(t=>t.name===mTreatName) || CLINIC.treatments[0]; }
+  function renderMTreatOpts(){
+    document.getElementById('mTreatOpts').innerHTML = CLINIC.treatments.map(t=>
+      `<button type="button" class="opt${t.name===mTreatName?' on':''}" onclick="selectMTreat('${esc(t.name)}')">${esc(t.name)}<small>${t.min} min</small></button>`).join('');
+  }
+  function selectMTreat(name){ mTreatName = name; onMTreatChange(); }
+  function renderMProOpts(){
+    const t = mTreat(), opts = t.pros.length>1 ? [ANY,...t.pros] : t.pros;
+    if(!opts.includes(mProName)) mProName = opts[0];
+    document.getElementById('mProOpts').innerHTML = opts.map(d=>{
+      const sched = d===ANY ? 'según disponibilidad' : proSchedule(d);
+      return `<button type="button" class="opt${d===mProName?' on':''}" onclick="selectMPro('${esc(d)}')">${esc(d)}<small>${esc(sched)}</small></button>`;
+    }).join('');
+  }
+  function selectMPro(name){ mProName = name; renderManualSlots(); }
+  function onMTreatChange(){ renderMTreatOpts(); renderMProOpts(); renderManualSlots(); }
+  function renderManualSlots(){
+    const date = document.getElementById('m-date').value, box = document.getElementById('mSlots');
+    const t = mTreat();
+    mChosen = null; mSlotsCur = [];
+    if(!date){ box.innerHTML = '<p class="hint">Elige una fecha.</p>'; document.getElementById('m-submit').disabled = true; return; }
+    mSlotsCur = slotsFor(date, t, mProName);
+    box.innerHTML = mSlotsCur.length
+      ? mSlotsCur.map((sl,i)=>`<button type="button" class="chip" onclick="pickMSlot(${i})">${sl.time}${mProName===ANY?' · '+esc(sl.doctor):''}</button>`).join('')
+      : `<p class="hint" style="color:var(--danger)">Sin huecos ese día${mProName!==ANY?` — ${esc(mProName)} pasa consulta: ${esc(proSchedule(mProName))}`:''}.</p>`;
+    document.getElementById('m-submit').disabled = true;
+  }
+  function pickMSlot(i){
+    mChosen = mSlotsCur[i];
+    document.querySelectorAll('#mSlots .chip').forEach((c,k)=>c.classList.toggle('on', k===i));
+    document.getElementById('m-submit').disabled = !document.getElementById('m-name').value.trim();
+  }
+  function submitManual(){
+    if(!db || !mChosen) return;
+    const name = document.getElementById('m-name').value.trim(); if(!name) return;
+    const t = mTreat(), mSlot = mChosen;
+    db.collection('solicitudes').add({
+      patientName:name, clinicId:CLINIC.id, phone:document.getElementById('m-phone').value.trim(),
+      doctorPref:mProName, duration:t.min, reason:t.name, date:document.getElementById('m-date').value,
+      time:mSlot.time, doctor:mSlot.doctor, status:'confirmada', origen:'telefono', verificada:true,
+      asistencia:'sin_confirmar', recordatorio:false, waitlist:false, createdAt:new Date().toISOString()
+    }).then(()=>{
+      const isDentist = CLINIC.pros.some(pp=>pp.name===mSlot.doctor && CLINIC.treatments.some(tt=>tt.name==='Revisión' && tt.pros.includes(pp.name)));
+      if(isDentist && !assignedPro(name)) setAssigned(name, mSlot.doctor);
+      document.getElementById('m-name').value=''; document.getElementById('m-phone').value='';
+      document.getElementById('m-date').value=''; mChosen=null;
+      document.getElementById('mSlots').innerHTML=''; toggleForm('form-manual');
+    }).catch(()=>{});
+  }
+
+  function applyClinic(id){
+    CLINIC = CLINICS[id];
+    document.body.style.setProperty('--brand', CLINIC.color);
+    document.getElementById('brandLogo').textContent = CLINIC.logo;
+    document.getElementById('brandName').textContent = CLINIC.name;
+    document.getElementById('p-reason').value = CLINIC.treatments[0].name;
+    document.getElementById('p-date').value = ''; calMonth = null;
+    mTreatName = CLINIC.treatments[0].name; mProName = null;
+    document.getElementById('m-date').value = ''; onMTreatChange();
+    bSel = new Set(); renderBTreatOpts();
+    onTreatChange(); renderMine(); renderAll();
+  }
+
+  // ===== Demo autónoma: base de datos en memoria con datos de ejemplo =====
+  const demoBlobs = {};
+  const blobUrl = id => demoBlobs[id] || ('/_blob/'+id);
+  async function claudeUse(name){
+    if(name==='assets') return { upload: async f=>{ const id='demo-'+Math.random().toString(36).slice(2,8); demoBlobs[id]=URL.createObjectURL(f); return {id, url:demoBlobs[id]}; } };
+    return null;
+  }
+  function makeMemoryDb(){
+    const cols = {}, subs = []; let n = 0, pending = false;
+    const col = name => cols[name] || (cols[name] = {});
+    const snapOf = (name, filters) => ({docs: Object.entries(col(name)).filter(([id,v])=>filters.every(([k,val])=>v[k]===val)).map(([id,v])=>({id, data:()=>({...v})}))});
+    const flush = ()=>{ pending = false; subs.slice().forEach(s=>{ try{ s.cb(snapOf(s.name,s.filters)); }catch(e){ console.error(e); } }); };
+    const notify = ()=>{ if(!pending){ pending = true; Promise.resolve().then(flush); } };
+    const query = (name, filters) => ({
+      where: (k,op,val) => query(name, [...filters,[k,val]]),
+      onSnapshot: (cb) => { const s = {name, filters, cb}; subs.push(s);
+        Promise.resolve().then(()=>{ if(subs.includes(s)){ try{ cb(snapOf(name,filters)); }catch(e){ console.error(e); } } });
+        return ()=>{ const i = subs.indexOf(s); if(i>=0) subs.splice(i,1); }; }
+    });
+    return {
+      _seed: (name,id,v)=>{ col(name)[id] = v; },
+      collection: name => ({
+        ...query(name, []),
+        add: async v => { const id = 'd'+(++n)+Math.random().toString(36).slice(2,5); col(name)[id] = {...v}; notify(); return {id}; },
+        doc: id => ({
+          set: async v => { col(name)[id] = {...v}; notify(); },
+          update: async p => { if(!col(name)[id]) throw new Error('no existe'); Object.assign(col(name)[id], p); notify(); },
+          delete: async () => { delete col(name)[id]; notify(); }
+        })
+      })
+    };
+  }
+  // PDF de ejemplo generado en el propio navegador (solo texto, sin acentos)
+  function demoPdf(){
+    const lines = ['Presupuesto de ejemplo','Revision: 40 EUR','Limpieza dental: 60 EUR','Empaste simple: 55 EUR','(documento ficticio de la demo)'];
+    let y = 250, stream = 'BT /F1 16 Tf 40 '+y+' Td ('+lines[0]+') Tj ET\n';
+    lines.slice(1).forEach(l=>{ y -= 30; stream += 'BT /F1 12 Tf 40 '+y+' Td ('+l+') Tj ET\n'; });
+    const objs = ['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 420 300] /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];
+    let out = '%PDF-1.4\n'; const offs = [];
+    objs.forEach((o,i)=>{ offs.push(out.length); out += (i+1)+' 0 obj\n'+o+'\nendobj\n'; });
+    const xref = out.length;
+    out += 'xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n'+offs.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')
+         + 'trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+    return out;
+  }
+  function seedDemo(mdb){
+    try{ demoBlobs['demo-pdf'] = URL.createObjectURL(new Blob([demoPdf()], {type:'application/pdf'})); }catch(e){}
+    const nextDow = (dow, min=2)=>{ for(let i=min;i<min+14;i++){ const x = new Date(); x.setDate(x.getDate()+i); if(x.getDay()===dow) return iso(x); } };
+    const ago = d => { const x = new Date(); x.setDate(x.getDate()-d); return x; };
+    let k = 0;
+    const cita = v => mdb._seed('solicitudes','s'+(++k), {clinicId:'sonrisa', asistencia:'sin_confirmar', recordatorio:false, waitlist:false,
+      createdAt:new Date(Date.now()-(60-k)*60000).toISOString(), ...v});
+    cita({patientName:'Ana Ruiz', phone:'611 200 300', reason:'Revisión', duration:20, doctor:'Dr. Ibáñez', doctorPref:'Dr. Ibáñez', date:nextDow(1), time:'17:00', status:'confirmada', origen:'app', verificada:false});
+    cita({patientName:'Beto Sanz', phone:'622 300 400', reason:'Limpieza dental', duration:30, doctor:'Higienista', doctorPref:'Higienista', date:nextDow(3), time:'10:00', status:'confirmada', origen:'app', verificada:false});
+    cita({patientName:'Carla Díaz', phone:'633 400 500', reason:'Empaste simple', duration:30, doctor:'Dra. Martínez', doctorPref:'Dra. Martínez', date:nextDow(2), time:'10:30', status:'confirmada', origen:'app', verificada:true});
+    cita({patientName:'Diego Pérez', phone:'644 500 600', reason:'Revisión', duration:20, doctor:'Dra. Martínez', doctorPref:'Dra. Martínez', date:nextDow(4), time:'09:00', status:'confirmada', origen:'telefono', verificada:true});
+    cita({patientName:'Eva Torres', phone:'655 600 700', reason:'Empaste compuesto', duration:45, doctor:'Dra. Martínez', doctorPref:'Dra. Martínez', date:nextDow(4), time:'18:00', status:'cancelada', canceladaPor:'paciente', origen:'app', verificada:true});
+    cita({patientName:'Fran Gil', phone:'666 700 800', reason:'Empaste simple', duration:30, doctor:'Dra. Martínez', doctorPref:'Dra. Martínez', date:'', time:'', status:'pendiente', waitlist:true});
+    cita({patientName:'Gema Ríos', phone:'677 800 900', reason:'Limpieza dental', duration:30, doctor:'Higienista', doctorPref:'Higienista', date:'', time:'', status:'pendiente', waitlist:true});
+    cita({patientName:'Iván Soto', phone:'688 900 100', reason:'Revisión', duration:20, doctor:'Dr. Ibáñez', doctorPref:'Dr. Ibáñez', date:iso(ago(200)), time:'17:00', status:'realizada', origen:'telefono', verificada:true, asistencia:'confirmada'});
+    mdb._seed('urgencias','u1',{clinicId:'sonrisa', patientName:'Hugo Martín', phone:'611 000 111', text:'Se me ha roto un empaste y me duele al masticar.', photos:[], estado:'nueva', createdAt:new Date(Date.now()-20*60000).toISOString()});
+    mdb._seed('presupuestos','b1',{clinicId:'sonrisa', patientName:'Laura García', items:[{reason:'Revisión'},{reason:'Limpieza dental'}], pdf:'demo-pdf', pdfName:'Presupuesto-Laura.pdf', elegidos:[], createdAt:ago(7).toISOString()});
+    mdb._seed('presupuestos','b2',{clinicId:'sonrisa', patientName:'Marta Gil', items:[{reason:'Empaste simple'}], pdf:'demo-pdf', pdfName:'Presupuesto-Marta.pdf', elegidos:['Empaste simple'], createdAt:ago(3).toISOString()});
+    [['Ana Ruiz','Dr. Ibáñez'],['Carla Díaz','Dra. Martínez'],['Diego Pérez','Dra. Martínez']].forEach(([n,d])=>
+      mdb._seed('pacientes','sonrisa--'+slug(n),{clinicId:'sonrisa', patientName:n, doctor:d}));
+  }
+
+  (async function init(){
+    applyClinic('sonrisa');
+    db = makeMemoryDb(); seedDemo(db);   // demo autónoma: sin conexión a ninguna cuenta
+    if(db){
+      setLive(true);
+      subscribeMine();
+      subscribeAll();
+    }else{
+      setLive(false);
+    }
+  })();
+</script>
+</body>
+</html>
